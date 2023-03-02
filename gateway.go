@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
-	 _ "github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 // Gateway contains the backend services and the router
@@ -45,7 +46,18 @@ func NewGateway(dbFactory func() (*sql.DB, error)) (*Gateway, error) {
     r.HandleFunc("/api/services", getServicesHandler(backendServices)).Methods("GET")
     r.HandleFunc("/api/services", addServiceHandler(backendServices)).Methods("POST")
     r.HandleFunc("/api/services/{name}", removeServiceHandler(backendServices)).Methods("DELETE")
-    r.HandleFunc("/{service}/{path:.+}", reverseProxyHandler(backendServices))
+	r.HandleFunc("/api/services/{name}", updateServiceHandler(backendServices)).Methods("PUT")
+	r.HandleFunc("/api/health", getHealthHandler(backendServices)).Methods("GET")
+    r.HandleFunc("/{proxyPath:.+}", reverseProxyHandler(backendServices)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+        vars := mux.Vars(r)
+        proxyPath := vars["proxyPath"]
+        for _, prefix := range []string{"/api/"} {
+            if strings.HasPrefix(proxyPath, prefix) {
+                return false
+            }
+        }
+        return true
+    })
 
     // Create the Gateway instance
     return &Gateway{
