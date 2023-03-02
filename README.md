@@ -7,8 +7,6 @@ Frontman Gateway is a reverse proxy and load balancer that routes requests to ba
 - Reverse proxy and load balancing of requests to backend services
 - Dynamic service registration and removal via a REST API
 - Support for multiple backend services
-- HTTP and HTTPS support
-- Automatic creation of database table if it does not exist
 
 ## Requirements
 
@@ -22,30 +20,19 @@ git clone https://github.com/hyperioxx/frontman.git
 cd frontman
 
 2. Set the `DATABASE_URI` environment variable to the URI of your PostgreSQL database:
-
-export DATABASE_URI=postgres://user:password@host:port/database
-
-3. Start the Frontman Gateway:
-
-go run main.go
-
-
-You should see the following output:
-
-Starting Frontman Gateway...
-
-The Frontman Gateway is now running on port `8080`.
+  ```export DATABASE_URI=postgres://user:password@host:port/database ```
+1. Start the Frontman Gateway:
+ ```go run main.go```
+  You should see the following output:
+  ```Starting Frontman Gateway...```
+  The Frontman Gateway is now running on port `8080`.
 
 4. Register a backend service:
+ ```curl -X POST -d "name=example&url=http://localhost:8000" http://localhost:8080/api/services```
+ This registers a backend service named `example` with the URL `http://localhost:8000`.
 
-curl -X POST -d "name=example&url=http://localhost:8000" http://localhost:8080/api/services
-
-
-This registers a backend service named `example` with the URL `http://localhost:8000`.
-
-1. Test the Frontman Gateway:
-
-curl http://localhost:8080/example/path/to/resource
+5. Test the Frontman Gateway:
+ ```curl http://localhost:8080/example/path/to/resource```
 
 
 
@@ -63,8 +50,6 @@ Example response:
 
 example: http://localhost:8000
 
-
-
 ### POST /api/services
 
 Registers a new backend service.
@@ -81,15 +66,9 @@ Content-Type: application/x-www-form-urlencoded
 
 name=example&url=http://localhost:8000
 
-
-
-
 Example response:
 
 Added service example: http://localhost:8000
-
-markdown
-
 
 ### DELETE /api/services/{name}
 
@@ -102,9 +81,6 @@ Parameters:
 Example request:
 
 DELETE /api/services/example HTTP/1.1
-
-
-
 
 Example response:
 
