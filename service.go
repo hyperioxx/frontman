@@ -3,12 +3,18 @@ package frontman
 import (
 	"database/sql"
 	"sync"
+	"time"
 )
 
 // BackendService holds the details of a backend service
 type BackendService struct {
-    Name string
-    URL  string
+    Name          string
+    URL           string
+    HealthCheck   string
+    RetryAttempts int
+    Timeout       time.Duration
+    MaxIdleConns  int
+    MaxIdleTime   time.Duration
 }
 
 

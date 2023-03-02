@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	 _ "github.com/lib/pq"
 )
 
 // Gateway contains the backend services and the router
@@ -60,3 +61,5 @@ func (gw *Gateway) Start() error {
     log.Println("Starting Frontman Gateway...")
     return http.ListenAndServe(":8080", gw.router)
 }
+
+
