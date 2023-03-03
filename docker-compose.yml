@@ -1,13 +1,7 @@
-version: "3.9"
-
+version: '3'
 services:
-  db:
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydb
+  redis:
+    image: redis:latest
+    container_name: redis
     ports:
-      - "5432:5432"
-    volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - 6379:6379

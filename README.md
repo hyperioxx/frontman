@@ -11,7 +11,7 @@ Frontman Gateway is a reverse proxy and load balancer that routes requests to ba
 ## Requirements
 
 - Go 1.16 or later
-- PostgreSQL 9.6 or later
+- Redis 5.0 or later
 
 ## Getting Started
 
@@ -19,8 +19,8 @@ Frontman Gateway is a reverse proxy and load balancer that routes requests to ba
 git clone https://github.com/hyperioxx/frontman.git
 cd frontman
 
-2. Set the `DATABASE_URI` environment variable to the URI of your PostgreSQL database:
-  ```export DATABASE_URI=postgres://user:password@host:port/database ```
+2. Set the REDIS_URL environment variable to the URL of your Redis instance
+  ```export REDIS_URL=redis://localhost:6379```
 1. Start the Frontman Gateway:
  ```go run main.go```
   You should see the following output:

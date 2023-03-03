@@ -1,77 +1,114 @@
 package frontman
 
 import (
-	"database/sql"
+	"context"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
+	"github.com/go-redis/redis/v9"
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
 )
 
 // Gateway contains the backend services and the router
 type Gateway struct {
-    router          *mux.Router
-    backendServices *BackendServices
+	router          *mux.Router
+	service         *mux.Router
+	backendServices *BackendServices
 }
 
-// NewDB creates a new *sql.DB instance given a database URI
-func NewDB(uri string) (*sql.DB, error) {
-    db, err := sql.Open("postgres", uri)
-    if err != nil {
-        return nil, err
-    }
-    return db, nil
+func NewRedisClient(ctx context.Context, uri string) (*redis.Client, error) {
+	opt, err := redis.ParseURL(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	client := redis.NewClient(opt)
+
+	_, err = client.Ping(ctx).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
-// NewGateway creates a new Gateway instance with a database connection factory
-func NewGateway(dbFactory func() (*sql.DB, error)) (*Gateway, error) {
-    // Retrieve the database connection from the factory
-    db, err := dbFactory()
-    if err != nil {
-        return nil, err
-    }
+// NewGateway creates a new Gateway instance with a Redis client connection factory
+func NewGateway(redisFactory func(ctx context.Context, uri string) (*redis.Client, error)) (*Gateway, error) {
+	// Retrieve the Redis client connection from the factory
+	ctx := context.Background()
+	// Retrieve the database URI from the environment variables
+	uri := os.Getenv("REDIS_URL")
+	if uri == "" {
+		log.Fatal("REDIS_URL environment variable is not set")
+	}
+	redisClient, err := redisFactory(ctx, uri)
+	if err != nil {
+		return nil, err
+	}
 
-    // Create a new router instance
-    r := mux.NewRouter()
+	// Create a new BackendServices instance
+	backendServices, err := NewBackendServices(ctx, redisClient)
+	if err != nil {
+		return nil, err
+	}
 
-    // Create a new BackendServices instance
-    backendServices, err := NewBackendServices(db)
-    if err != nil {
-        return nil, err
-    }
+	servicesRouter := mux.NewRouter()
+	servicesRouter.HandleFunc("/api/services", getServicesHandler(backendServices)).Methods("GET")
+	servicesRouter.HandleFunc("/api/services", addServiceHandler(backendServices)).Methods("POST")
+	servicesRouter.HandleFunc("/api/services/{name}", removeServiceHandler(backendServices)).Methods("DELETE")
+	servicesRouter.HandleFunc("/api/services/{name}", updateServiceHandler(backendServices)).Methods("PUT")
+	servicesRouter.HandleFunc("/api/health", getHealthHandler(backendServices)).Methods("GET")
 
-    // Define your API endpoints and services using the router
-    r.HandleFunc("/api/services", getServicesHandler(backendServices)).Methods("GET")
-    r.HandleFunc("/api/services", addServiceHandler(backendServices)).Methods("POST")
-    r.HandleFunc("/api/services/{name}", removeServiceHandler(backendServices)).Methods("DELETE")
-	r.HandleFunc("/api/services/{name}", updateServiceHandler(backendServices)).Methods("PUT")
-	r.HandleFunc("/api/health", getHealthHandler(backendServices)).Methods("GET")
-    r.HandleFunc("/{proxyPath:.+}", reverseProxyHandler(backendServices)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
-        vars := mux.Vars(r)
-        proxyPath := vars["proxyPath"]
-        for _, prefix := range []string{"/api/"} {
-            if strings.HasPrefix(proxyPath, prefix) {
-                return false
-            }
-        }
-        return true
-    })
+	// Create a new router instance
+	proxyRouter := mux.NewRouter()
 
-    // Create the Gateway instance
-    return &Gateway{
-        router:          r,
-        backendServices: backendServices,
-    }, nil
+	proxyRouter.HandleFunc("/{proxyPath:.+}", reverseProxyHandler(backendServices)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+		vars := mux.Vars(r)
+		proxyPath := vars["proxyPath"]
+		for _, prefix := range []string{"/api/"} {
+			if strings.HasPrefix(proxyPath, prefix) {
+				return false
+			}
+		}
+		return true
+	})
+
+	// Create the Gateway instance
+	return &Gateway{
+		router:          proxyRouter,
+		service:         servicesRouter,
+		backendServices: backendServices,
+	}, nil
 }
-
 
 // Start starts the server
 func (gw *Gateway) Start() error {
-    // Start the server
-    log.Println("Starting Frontman Gateway...")
-    return http.ListenAndServe(":8080", gw.router)
+	// Create a new HTTP server instance for the /api/services endpoint
+
+	servicesServer := &http.Server{
+		Addr:    ":8080",
+		Handler: gw.service,
+	}
+	proxyServer := &http.Server{
+		Addr:    ":8000",
+		Handler: gw.router,
+	}
+
+	// Start the main HTTP server
+	log.Println("Starting Frontman Gateway...")
+	go func() {
+		if err := proxyServer.ListenAndServe(); err != nil {
+			log.Fatalf("Failed to start Frontman Gateway: %v", err)
+		}
+	}()
+
+	// Start the /api/services HTTP server
+	log.Println("Starting /api/services endpoint...")
+	if err := servicesServer.ListenAndServe(); err != nil {
+		log.Fatalf("Failed to start /api/services endpoint: %v", err)
+	}
+
+	return nil
 }
-
-
