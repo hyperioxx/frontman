@@ -52,7 +52,7 @@ $ make clean
 ```
 This will remove all binaries from the bin directory.
 
-
+#### Running Frontman Locally
 
 Once you have the binary, you can start Frontman by running:
 
