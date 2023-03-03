@@ -32,6 +32,28 @@ Frontman is configured using environment variables. The following variables are 
 #### Starting Frontman
 To start Frontman, you can download the latest release binary for your platform from the releases page or build it from source.
 
+##### Building from Source
+To build the application from source, make sure you have Go installed on your system.
+
+Clone the repository:
+```bash
+$ git clone https://github.com/hyperioxx/frontman.git
+$ cd frontman
+```
+Build the binaries:
+```
+$ make all
+```
+This will build all programs defined in the cmd directory and place the resulting binaries in the bin directory.
+
+(Optional) Clean up the binaries:
+```bash
+$ make clean
+```
+This will remove all binaries from the bin directory.
+
+
+
 Once you have the binary, you can start Frontman by running:
 
 ```bash
