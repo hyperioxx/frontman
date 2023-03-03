@@ -1,99 +1,78 @@
 # Frontman
+Frontman is an open-source API gateway written in Go that allows you to manage your microservices and expose them as a single API endpoint. It acts as a reverse proxy and handles requests from clients, routing them to the appropriate backend service.
 
-Frontman Gateway is an API gateway that provides a reverse proxy and load balancing functionality to route incoming HTTP requests to backend services. By default, the Frontman Gateway runs on port 8080.
+Frontman provides a simple, flexible, and scalable solution for managing microservices. It includes features such as and automatic health checks, making it easy to manage and maintain your API gateway and backend services.
 
-In addition, Frontman Gateway provides a set of API endpoints to manage the registered backend services. These API endpoints run on a separate port, By default, the services API endpoints run on port 8000.
+With Frontman, you can easily add new backend services, update existing ones, and remove them, without affecting the clients. Frontman also provides an HTTP API for managing backend services, making it easy to automate the management of your API gateway.
 
-When a new backend service is registered via the /api/services endpoint, the Frontman Gateway adds it to its registry and starts forwarding incoming requests to that service. The service can then be updated or removed at any time via the /api/services/{name} endpoints.
+Frontman is designed to be highly available and fault-tolerant. It uses Redis as a data store for managing backend services, ensuring that your services are always available and up-to-date. It also supports distributed deployments, allowing you to scale horizontally as your traffic and service requirements grow.
 
-It's recommended to keep the services API endpoints on a separate port to minimize the risk of conflicts or collisions with the incoming HTTP traffic.
+Overall, Frontman is a powerful and flexible API gateway that simplifies the management of microservices, making it easier for developers to build and maintain scalable and reliable API endpoints.
 
 <p>&nbsp;</p>
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/hyperioxx/frontman)](https://goreportcard.com/report/github.com/hyperioxx/frontman) [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/hyperioxx/frontman/blob/main/LICENCE) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
 <br />
-## Features
 
-- Reverse proxy and load balancing of requests to backend services
-- Dynamic service registration and removal via a REST API
-- Support for multiple backend services
+##Features
+- Reverse proxy requests to backend services
+- Health checks for backend services
+- Dynamic backend service configuration using Redis
+  
+##Usage
+####Configuration
 
-## Requirements
+Frontman is configured using environment variables. The following variables are supported:
+|Environment Variable| Description| Default|
+|:--------------------:|:--------------:|:--------------:|
+|FRONTMAN_LISTEN_ADDR | The address and port on which Frontman should listen for incoming requests| ```0.0.0.0:8080```|
+|FRONTMAN_REDIS_URL | The URL of the Redis instance used for storing backend service configuration |```redis://localhost:6379```
 
-- Go 1.18 or later
-- Redis 5.0 or later
+####Starting Frontman
+To start Frontman, you can download the latest release binary for your platform from the releases page or build it from source.
 
-## Getting Started
+Once you have the binary, you can start Frontman by running:
 
-1. Clone this repository:
-git clone https://github.com/hyperioxx/frontman.git
-cd frontman
+```bash
+$ ./frontman
+```
+This will start Frontman with the default configuration, using the Redis instance running on localhost:6379.
 
-2. Set the REDIS_URL environment variable to the URL of your Redis instance
-  ```export REDIS_URL=redis://localhost:6379```
-1. Start the Frontman Gateway:
- ```go run main.go```
-  You should see the following output:
-  ```Starting Frontman Gateway...```
-  The Frontman Gateway is now running on port `8080`.
+####Running Frontman in Docker
+Frontman can also be run as a Docker container. Here's an example command to start Frontman in Docker, assuming your Redis instance is running on localhost:
 
-4. Register a backend service:
- ```
- curl -X POST -H "Content-Type: application/json" -d '{"name": "example", "scheme": "http", "url": "http://localhost:8000", "path": "/", "healthCheck": "/healthcheck"}' http://localhost:8080/api/services
- ```
- This registers a backend service named `example` with the URL `http://localhost:8000`.
-
-1. Test the Frontman Gateway:
- ```curl http://localhost:8080/example/path/to/resource```
-
+```bash
+$ docker run -p 8080:8080 -e FRONTMAN_REDIS_URL=redis://host.docker.internal:6379 hyperioxx/frontman:latest
+```
+This command starts a new container, maps port 8080 on the host to port 8080 in the container, and sets the FRONTMAN_REDIS_URL environment variable to the URL of the Redis instance. Note that in this example, we're using host.docker.internal to reference the Redis instance running on the host machine, but you can replace this with the actual IP or hostname of your Redis instance.
 
 
-This should route the request to the `example` backend service and return the response.
+##Managing Backend Services
+Frontman uses Redis to store the configuration for backend services. Backend services are represented as JSON objects and stored in a Redis list. Here's an example of a backend service configuration:
 
-## API
+```json
+{
+	"name": "Example Service",
+	"scheme": "http",
+	"url": "example.com",
+	"path": "/api",
+	"domain": "",
+	"healthCheck": "http://example.com/health",
+	"retryAttempts": 3,
+	"timeout": "10s",
+	"maxIdleConns": 100,
+	"maxIdleTime": "60s"
+}
+```
+You can add, update, and remove backend services using the following REST endpoints:
 
-The Frontman Gateway provides a REST API for registering and removing backend services:
+- GET /services - Retrieves a list of all backend services
+- GET /health - Performs a health check on all backend services and returns the status of each service
+- POST /services - Adds a new backend service
+- PUT /services/{name} - Updates an existing backend service
+- DELETE /services/{name} - Removes a backend service
+##Contributing
+If you'd like to contribute to Frontman, please fork the repository and submit a pull request. We welcome bug reports, feature requests, and code contributions.
 
-### GET /api/services
-
-Returns a list of registered backend services.
-
-Example response:
-
-example: http://localhost:8000
-
-### POST /api/services
-
-Registers a new backend service.
-
-Parameters:
-
-- `name`: the name of the backend service
-- `url`: the URL of the backend service
-
-Example request:
-
-POST /api/services HTTP/1.1
-Content-Type: application/x-www-form-urlencoded
-
-name=example&url=http://localhost:8000
-
-Example response:
-
-Added service example: http://localhost:8000
-
-### DELETE /api/services/{name}
-
-Removes a backend service.
-
-Parameters:
-
-- `name`: the name of the backend service to remove
-
-Example request:
-
-DELETE /api/services/example HTTP/1.1
-
-Example response:
-
-Removed service example
+##License
+Frontman is released under the GNU General Public License. See LICENSE for details.
