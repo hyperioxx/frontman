@@ -2,6 +2,10 @@
 
 Frontman Gateway is a reverse proxy and load balancer that routes requests to backend services based on the service name in the URL path. It supports dynamic service registration and removal, and can be used to build a scalable microservice architecture.
 
+<p>&nbsp;</p>
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/hyperioxx/frontman)](https://goreportcard.com/report/github.com/hyperioxx/frontman) [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/hyperioxx/frontman/LICENCE) [![GitHub contributors](https://img.shields.io/github/contributors/hyperioxx/frontman/)](https://github.com/hyperioxx/frontman/graphs/contributors/) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
+<br />
 ## Features
 
 - Reverse proxy and load balancing of requests to backend services
