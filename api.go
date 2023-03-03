@@ -2,8 +2,9 @@ package frontman
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func getServicesHandler(bs *BackendServices) http.HandlerFunc {
@@ -42,14 +43,25 @@ func addServiceHandler(bs *BackendServices) http.HandlerFunc {
 		}
 
 		// Validate that the required fields are present
-		if service.URL == "" || service.Path == "" {
-			http.Error(w, "URL and path are required fields", http.StatusBadRequest)
+		if service.Path == "" {
+			http.Error(w, "Path is a required field", http.StatusBadRequest)
 			return
 		}
 
 		// If the scheme is not specified, default to "http"
 		if service.Scheme == "" {
 			service.Scheme = "http"
+		}
+
+		// Check that at least one upstream target is specified
+		if len(service.UpstreamTargets) < 1 {
+			http.Error(w, "At least one upstream target is required", http.StatusBadRequest)
+			return
+		}
+
+		// If no timeout is specified, default to 10 seconds
+		if service.Timeout == 0 {
+			service.Timeout = 10 
 		}
 
 		// Add the service to the list of backend services
@@ -60,6 +72,7 @@ func addServiceHandler(bs *BackendServices) http.HandlerFunc {
 		json.NewEncoder(w).Encode(service)
 	}
 }
+
 
 func updateServiceHandler(bs *BackendServices) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -72,8 +85,8 @@ func updateServiceHandler(bs *BackendServices) http.HandlerFunc {
 		}
 
 		// Validate that the required fields are present
-		if service.URL == "" || service.Path == "" {
-			http.Error(w, "URL and path are required fields", http.StatusBadRequest)
+		if service.UpstreamTargets == nil || len(service.UpstreamTargets) == 0 || service.Path == "" {
+			http.Error(w, "UpstreamTargets and path are required fields", http.StatusBadRequest)
 			return
 		}
 

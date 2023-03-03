@@ -72,7 +72,7 @@ func NewGateway(redisFactory func(ctx context.Context, uri string) (*redis.Clien
 	// Create a new router instance
 	proxyRouter := mux.NewRouter()
 
-	proxyRouter.HandleFunc("/{proxyPath:.+}", reverseProxyHandler(backendServices)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+	proxyRouter.HandleFunc("/{proxyPath:.+}", gatewayHandler(backendServices)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
 		vars := mux.Vars(r)
 		proxyPath := vars["proxyPath"]
 		for _, prefix := range []string{"/api/"} {
@@ -90,7 +90,6 @@ func NewGateway(redisFactory func(ctx context.Context, uri string) (*redis.Clien
 		backendServices: backendServices,
 	}, nil
 }
-
 
 // Start starts the server
 func (gw *Gateway) Start() error {
