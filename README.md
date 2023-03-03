@@ -1,10 +1,16 @@
-# Frontman Gateway
+# Frontman
 
-Frontman Gateway is a reverse proxy and load balancer that routes requests to backend services based on the service name in the URL path. It supports dynamic service registration and removal, and can be used to build a scalable microservice architecture.
+Frontman Gateway is an API gateway that provides a reverse proxy and load balancing functionality to route incoming HTTP requests to backend services. By default, the Frontman Gateway runs on port 8080.
+
+In addition, Frontman Gateway provides a set of API endpoints to manage the registered backend services. These API endpoints run on a separate port, By default, the services API endpoints run on port 8000.
+
+When a new backend service is registered via the /api/services endpoint, the Frontman Gateway adds it to its registry and starts forwarding incoming requests to that service. The service can then be updated or removed at any time via the /api/services/{name} endpoints.
+
+It's recommended to keep the services API endpoints on a separate port to minimize the risk of conflicts or collisions with the incoming HTTP traffic.
 
 <p>&nbsp;</p>
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/hyperioxx/frontman)](https://goreportcard.com/report/github.com/hyperioxx/frontman) [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/hyperioxx/frontman/LICENCE) [![GitHub contributors](https://img.shields.io/github/contributors/hyperioxx/frontman/)](https://github.com/hyperioxx/frontman/graphs/contributors/) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hyperioxx/frontman)](https://goreportcard.com/report/github.com/hyperioxx/frontman) [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/hyperioxx/frontman/blob/main/LICENCE) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
 <br />
 ## Features
 
@@ -14,7 +20,7 @@ Frontman Gateway is a reverse proxy and load balancer that routes requests to ba
 
 ## Requirements
 
-- Go 1.16 or later
+- Go 1.18 or later
 - Redis 5.0 or later
 
 ## Getting Started
@@ -32,10 +38,12 @@ cd frontman
   The Frontman Gateway is now running on port `8080`.
 
 4. Register a backend service:
- ```curl -X POST -d "name=example&url=http://localhost:8000" http://localhost:8080/api/services```
+ ```
+ curl -X POST -H "Content-Type: application/json" -d '{"name": "example", "scheme": "http", "url": "http://localhost:8000", "path": "/", "healthCheck": "/healthcheck"}' http://localhost:8080/api/services
+ ```
  This registers a backend service named `example` with the URL `http://localhost:8000`.
 
-5. Test the Frontman Gateway:
+1. Test the Frontman Gateway:
  ```curl http://localhost:8080/example/path/to/resource```
 
 
