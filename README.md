@@ -16,8 +16,10 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 
 ## Features
 - Reverse proxy requests to backend services
-- Health checks for backend services
-- Dynamic backend service configuration using Redis
+- Dynamic backend service configuration using Redis as a backend database
+- Automatic refresh of connections to upstream targets with configurable timeouts and maximum idle connections
+- Option to strip the service path from requests before forwarding to upstream targets
+- Written in Go for efficient performance and concurrency support
   
 ## Usage
 #### Configuration
