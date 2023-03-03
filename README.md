@@ -77,14 +77,11 @@ Frontman uses Redis to store the configuration for backend services. Backend ser
 {
 	"name": "Example Service",
 	"scheme": "http",
-	"url": "example.com",
-	"path": "/api",
+	"upstreamTargets":["service1:8000", "service2:8000"],
+	"path": "/test",
 	"domain": "",
-	"healthCheck": "http://example.com/health",
-	"retryAttempts": 3,
-	"timeout": "10s",
 	"maxIdleConns": 100,
-	"maxIdleTime": "60s"
+	"maxIdleTime": 60
 }
 ```
 You can add, update, and remove backend services using the following REST endpoints:
