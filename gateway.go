@@ -34,14 +34,27 @@ func NewRedisClient(ctx context.Context, uri string) (*redis.Client, error) {
 	return client, nil
 }
 
+func NewServicesRouter(backendServices *BackendServices) *mux.Router {
+	router := mux.NewRouter()
+
+	router.HandleFunc("/api/services", getServicesHandler(backendServices)).Methods("GET")
+	router.HandleFunc("/api/services", addServiceHandler(backendServices)).Methods("POST")
+	router.HandleFunc("/api/services/{name}", removeServiceHandler(backendServices)).Methods("DELETE")
+	router.HandleFunc("/api/services/{name}", updateServiceHandler(backendServices)).Methods("PUT")
+	router.HandleFunc("/api/health", getHealthHandler(backendServices)).Methods("GET")
+
+	return router
+}
+
 // NewGateway creates a new Gateway instance with a Redis client connection factory
 func NewGateway(redisFactory func(ctx context.Context, uri string) (*redis.Client, error)) (*Gateway, error) {
 	// Retrieve the Redis client connection from the factory
 	ctx := context.Background()
+
 	// Retrieve the database URI from the environment variables
-	uri := os.Getenv("REDIS_URL")
+	uri := os.Getenv("FRONTMAN_REDIS_URL")
 	if uri == "" {
-		log.Fatal("REDIS_URL environment variable is not set")
+		log.Fatal("FRONTMAN_REDIS_URL environment variable is not set")
 	}
 	redisClient, err := redisFactory(ctx, uri)
 	if err != nil {
@@ -54,12 +67,7 @@ func NewGateway(redisFactory func(ctx context.Context, uri string) (*redis.Clien
 		return nil, err
 	}
 
-	servicesRouter := mux.NewRouter()
-	servicesRouter.HandleFunc("/api/services", getServicesHandler(backendServices)).Methods("GET")
-	servicesRouter.HandleFunc("/api/services", addServiceHandler(backendServices)).Methods("POST")
-	servicesRouter.HandleFunc("/api/services/{name}", removeServiceHandler(backendServices)).Methods("DELETE")
-	servicesRouter.HandleFunc("/api/services/{name}", updateServiceHandler(backendServices)).Methods("PUT")
-	servicesRouter.HandleFunc("/api/health", getHealthHandler(backendServices)).Methods("GET")
+	servicesRouter := NewServicesRouter(backendServices)
 
 	// Create a new router instance
 	proxyRouter := mux.NewRouter()
@@ -83,30 +91,40 @@ func NewGateway(redisFactory func(ctx context.Context, uri string) (*redis.Clien
 	}, nil
 }
 
+
 // Start starts the server
 func (gw *Gateway) Start() error {
 	// Create a new HTTP server instance for the /api/services endpoint
 
-	servicesServer := &http.Server{
-		Addr:    ":8080",
+	apiAddr := os.Getenv("FRONTMAN_API_ADDR")
+	if apiAddr == "" {
+		apiAddr = "0.0.0.0:8080"
+	}
+	gatewayAddr := os.Getenv("FRONTMAN_GATEWAY_ADDR")
+	if gatewayAddr == "" {
+		gatewayAddr = "0.0.0.0:8000"
+	}
+
+	api := &http.Server{
+		Addr:    apiAddr,
 		Handler: gw.service,
 	}
-	proxyServer := &http.Server{
-		Addr:    ":8000",
+	gateway := &http.Server{
+		Addr:    gatewayAddr,
 		Handler: gw.router,
 	}
 
 	// Start the main HTTP server
 	log.Println("Starting Frontman Gateway...")
 	go func() {
-		if err := proxyServer.ListenAndServe(); err != nil {
+		if err := gateway.ListenAndServe(); err != nil {
 			log.Fatalf("Failed to start Frontman Gateway: %v", err)
 		}
 	}()
 
 	// Start the /api/services HTTP server
 	log.Println("Starting /api/services endpoint...")
-	if err := servicesServer.ListenAndServe(); err != nil {
+	if err := api.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start /api/services endpoint: %v", err)
 	}
 

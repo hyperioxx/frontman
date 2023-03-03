@@ -25,7 +25,8 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 Frontman is configured using environment variables. The following variables are supported:
 |Environment Variable| Description| Default|
 |:--------------------:|:--------------:|:--------------:|
-|FRONTMAN_LISTEN_ADDR | The address and port on which Frontman should listen for incoming requests| ```0.0.0.0:8080```|
+|FRONTMAN_API_ADDR | The address and port on which the /api/services endpoint should listen for incoming requests | ```0.0.0.0:8080```|
+|FRONTMAN_GATEWAY_ADDR | The address and port on which the gateway should listen for incoming requests| ```0.0.0.0:8000```|
 |FRONTMAN_REDIS_URL | The URL of the Redis instance used for storing backend service configuration |```redis://localhost:6379```
 
 #### Starting Frontman

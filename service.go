@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+
 	"log"
 	"net/http"
+
 	"sync"
 	"time"
 
@@ -24,13 +26,14 @@ type BackendService struct {
 	Timeout       time.Duration `json:"timeout"`
 	MaxIdleConns  int           `json:"maxIdleConns"`
 	MaxIdleTime   time.Duration `json:"maxIdleTime"`
+	StripPath     bool          `json:"stripPath"`
 }
 
-// BackendServices holds a list of backend services
+// BackendServices holds a map of backend services
 type BackendServices struct {
 	redis    *redis.Client
 	ctx      context.Context
-	services []*BackendService
+	services map[string]*BackendService
 	sync.RWMutex
 }
 
@@ -57,13 +60,14 @@ func (bs *BackendServices) loadServices() error {
 
 	bs.Lock()
 	defer bs.Unlock()
+	bs.services = make(map[string]*BackendService)
 	for _, service := range services {
 		var backendService BackendService
 		err := json.Unmarshal([]byte(service), &backendService)
 		if err != nil {
 			return err
 		}
-		bs.services = append(bs.services, &backendService)
+		bs.services[backendService.Name] = &backendService
 	}
 	return nil
 }
@@ -82,7 +86,7 @@ func (bs *BackendServices) AddService(service *BackendService) error {
 	if err != nil {
 		return err
 	}
-	bs.services = append(bs.services, service)
+	bs.services[service.Name] = service
 
 	return nil
 }
@@ -97,20 +101,12 @@ func (bs *BackendServices) UpdateService(service *BackendService) error {
 		return err
 	}
 
-	index := -1
-	for i, s := range bs.services {
-		if s.Name == service.Name {
-			index = i
-			break
-		}
-	}
-
-	if index == -1 {
+	if _, ok := bs.services[service.Name]; !ok {
 		return errors.New("service not found")
 	}
 
-	bs.services[index] = service
-	err = bs.redis.LSet(bs.ctx, "services", int64(index), serviceJSON).Err()
+	bs.services[service.Name] = service
+	err = bs.redis.LSet(bs.ctx, "services", int64(len(bs.services)-1), serviceJSON).Err()
 	if err != nil {
 		return err
 	}
@@ -123,19 +119,11 @@ func (bs *BackendServices) RemoveService(name string) error {
 	bs.Lock()
 	defer bs.Unlock()
 
-	index := -1
-	for i, service := range bs.services {
-		if service.Name == name {
-			index = i
-			break
-		}
-	}
-
-	if index == -1 {
+	if _, ok := bs.services[name]; !ok {
 		return errors.New("service not found")
 	}
 
-	bs.services = append(bs.services[:index], bs.services[index+1:]...)
+	delete(bs.services, name)
 	err := bs.redis.LRem(bs.ctx, "services", 0, name).Err()
 	if err != nil {
 		return err
@@ -148,8 +136,10 @@ func (bs *BackendServices) RemoveService(name string) error {
 func (bs *BackendServices) GetServices() []*BackendService {
 	bs.RLock()
 	defer bs.RUnlock()
-	services := make([]*BackendService, len(bs.services))
-	copy(services, bs.services)
+	services := make([]*BackendService, 0, len(bs.services))
+	for _, service := range bs.services {
+		services = append(services, service)
+	}
 	return services
 }
 
