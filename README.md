@@ -14,13 +14,13 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 [![Go Report Card](https://goreportcard.com/badge/github.com/hyperioxx/frontman)](https://goreportcard.com/report/github.com/hyperioxx/frontman) [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/hyperioxx/frontman/blob/main/LICENCE) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
 <br />
 
-##Features
+## Features
 - Reverse proxy requests to backend services
 - Health checks for backend services
 - Dynamic backend service configuration using Redis
   
-##Usage
-####Configuration
+## Usage
+#### Configuration
 
 Frontman is configured using environment variables. The following variables are supported:
 |Environment Variable| Description| Default|
@@ -28,7 +28,7 @@ Frontman is configured using environment variables. The following variables are 
 |FRONTMAN_LISTEN_ADDR | The address and port on which Frontman should listen for incoming requests| ```0.0.0.0:8080```|
 |FRONTMAN_REDIS_URL | The URL of the Redis instance used for storing backend service configuration |```redis://localhost:6379```
 
-####Starting Frontman
+#### Starting Frontman
 To start Frontman, you can download the latest release binary for your platform from the releases page or build it from source.
 
 Once you have the binary, you can start Frontman by running:
@@ -38,7 +38,7 @@ $ ./frontman
 ```
 This will start Frontman with the default configuration, using the Redis instance running on localhost:6379.
 
-####Running Frontman in Docker
+#### Running Frontman in Docker
 Frontman can also be run as a Docker container. Here's an example command to start Frontman in Docker, assuming your Redis instance is running on localhost:
 
 ```bash
@@ -47,7 +47,7 @@ $ docker run -p 8080:8080 -e FRONTMAN_REDIS_URL=redis://host.docker.internal:637
 This command starts a new container, maps port 8080 on the host to port 8080 in the container, and sets the FRONTMAN_REDIS_URL environment variable to the URL of the Redis instance. Note that in this example, we're using host.docker.internal to reference the Redis instance running on the host machine, but you can replace this with the actual IP or hostname of your Redis instance.
 
 
-##Managing Backend Services
+## Managing Backend Services
 Frontman uses Redis to store the configuration for backend services. Backend services are represented as JSON objects and stored in a Redis list. Here's an example of a backend service configuration:
 
 ```json
@@ -71,8 +71,8 @@ You can add, update, and remove backend services using the following REST endpoi
 - POST /services - Adds a new backend service
 - PUT /services/{name} - Updates an existing backend service
 - DELETE /services/{name} - Removes a backend service
-##Contributing
+## Contributing
 If you'd like to contribute to Frontman, please fork the repository and submit a pull request. We welcome bug reports, feature requests, and code contributions.
 
-##License
+## License
 Frontman is released under the GNU General Public License. See LICENSE for details.
