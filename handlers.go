@@ -146,6 +146,7 @@ func gatewayHandler(bs *BackendServices) http.HandlerFunc {
 		
 		// Get the target index to use for this request
 		targetIndex := getNextTargetIndex(backendService, currentTargetIndex)
+		currentTargetIndex = targetIndex
 
 		// Get the upstream target URL for this request
 		upstreamTarget := backendService.UpstreamTargets[targetIndex]
