@@ -14,3 +14,8 @@ bin/%: cmd/%/main.go
 # Clean up all binaries
 clean:
 	rm -f bin/*
+
+# Test target (run all tests)
+test:
+	$(GO) test ./...
+
