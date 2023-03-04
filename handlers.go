@@ -66,28 +66,76 @@ func refreshConnections(bs *BackendServices, clients map[string]*http.Client, cl
 	}
 }
 
+func findBackendService(services []*BackendService, r *http.Request) *BackendService {
+    for _, s := range services {
+        if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
+            return s
+        }
+        if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
+            return s
+        }
+    }
+    return nil
+}
+
+func getNextTargetIndex(backendService *BackendService, currentIndex int) int {
+    numTargets := len(backendService.UpstreamTargets)
+    if numTargets == 0 {
+        return -1
+    }
+    if currentIndex >= numTargets-1 {
+        return 0
+    }
+    return currentIndex + 1
+}
+
+func getClientForBackendService(bs BackendService, target string, clients map[string]*http.Client, clientLock *sync.Mutex) (*http.Client, error) {
+	clientLock.Lock()
+	defer clientLock.Unlock()
+
+	// Check if the client for this backend service already exists
+	if client, ok := clients[target]; ok {
+		return client, nil
+	}
+
+	// Create a new transport with the specified settings
+	transport := &http.Transport{
+		MaxIdleConns:        bs.MaxIdleConns,
+		IdleConnTimeout:     bs.MaxIdleTime * time.Second,
+		TLSHandshakeTimeout: bs.Timeout * time.Second,
+	}
+
+	// Create a new HTTP client with the transport
+	client := &http.Client{
+		Transport: transport,
+	}
+
+	// Add the client to the map of clients
+	clients[target] = client
+
+	return client, nil
+}
+
+
+func copyHeaders(dst, src http.Header) {
+    for k, v := range src {
+        dst[k] = v
+    }
+}
+
+
 func gatewayHandler(bs *BackendServices) http.HandlerFunc {
+	// Create a map to store HTTP clients for each backend service
 	var clients map[string]*http.Client = make(map[string]*http.Client)
 	var clientLock sync.Mutex
 	var currentTargetIndex int
+
+	// Start a goroutine to refresh HTTP connections to each backend service
 	go refreshConnections(bs, clients, &clientLock)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get the service name from the request path
-		services := bs.GetServices()
-
-		// Find the backend service that matches the domain and path
-		var backendService *BackendService
-		for _, s := range services {
-			if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
-				backendService = s
-				break
-			}
-			if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
-				backendService = s
-				break
-			}
-		}
+		// Find the backend service that matches the request
+		backendService := findBackendService(bs.GetServices(), r)
 
 		// If the backend service was not found, return a 404 error
 		if backendService == nil {
@@ -95,9 +143,9 @@ func gatewayHandler(bs *BackendServices) http.HandlerFunc {
 			return
 		}
 
+		
 		// Get the target index to use for this request
 		targetIndex := getNextTargetIndex(backendService, currentTargetIndex)
-		currentTargetIndex = targetIndex
 
 		// Get the upstream target URL for this request
 		upstreamTarget := backendService.UpstreamTargets[targetIndex]
@@ -114,21 +162,11 @@ func gatewayHandler(bs *BackendServices) http.HandlerFunc {
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, backendService.Path)
 		}
 
-		// Get or create a new client for this service
-
-		clientLock.Lock()
-		client, ok := clients[upstreamTarget]
-		clientLock.Unlock()
-		if !ok {
-			http.Error(w, "Client not found", http.StatusInternalServerError)
-			return
-		}
-
+		// Get or create a new client for this backend service
+		client, err := getClientForBackendService(*backendService, upstreamTarget, clients, &clientLock)
+        headers := make(http.Header)
 		// Copy the headers from the original request
-		headers := make(http.Header)
-		for k, v := range r.Header {
-			headers[k] = v
-		}
+	    copyHeaders(headers, r.Header)
 
 		// Remove the X-Forwarded-For header to prevent spoofing
 		headers.Del("X-Forwarded-For")
@@ -159,9 +197,7 @@ func gatewayHandler(bs *BackendServices) http.HandlerFunc {
 		log.Printf("Response received from %s: %d %s", upstreamTarget, resp.StatusCode, resp.Status)
 
 		// Copy the response headers back to the client
-		for k, v := range resp.Header {
-			w.Header()[k] = v
-		}
+		copyHeaders(w.Header(), resp.Header)
 
 		// Set the status code and body of the response
 		w.WriteHeader(resp.StatusCode)
