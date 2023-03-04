@@ -2,7 +2,7 @@ version: '3'
 services:
 
   gateway:
-    image: frontman:latest
+    image: hyperioxx/frontman:latest
     ports:
       - 8080:8080
       - 8000:8000
