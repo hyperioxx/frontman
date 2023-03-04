@@ -27,6 +27,7 @@ type BackendService struct {
 	MaxIdleConns    int           `json:"maxIdleConns"`
 	MaxIdleTime     time.Duration `json:"maxIdleTime"`
 	StripPath       bool          `json:"stripPath"`
+	Provider        OAuthProvider
 }
 
 // BackendServices holds a map of backend services
@@ -35,13 +36,6 @@ type BackendServices struct {
 	ctx      context.Context
 	services map[string]*BackendService
 	sync.RWMutex
-}
-
-func getNextTargetIndex(bs *BackendService, current int) int {
-    if len(bs.UpstreamTargets) == 0 {
-        return current
-    }
-    return (current + 1) % len(bs.UpstreamTargets)
 }
 
 // NewBackendServices creates a new BackendServices instance with a Redis client connection
