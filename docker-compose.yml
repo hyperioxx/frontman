@@ -9,7 +9,8 @@ services:
     volumes:
       - ./certs:/certs
     environment:
-      - FRONTMAN_REDIS_URL=redis://redis:6379
+      - FRONTMAN_SERVICE_TYPE=mongo
+      - FRONTMAN_MONGO_URL=mongodb://mongo:27017
       - FRONTMAN_API_ADDR=0.0.0.0:8080
       - FRONTMAN_GATEWAY_ADDR=0.0.0.0:8000
       - FRONTMAN_API_SSL_ENABLED=true
@@ -18,8 +19,7 @@ services:
       - FRONTMAN_GATEWAY_SSL_ENABLED=true
       - FRONTMAN_GATEWAY_SSL_CERT=/certs/server.crt
       - FRONTMAN_GATEWAY_SSL_KEY=/certs/server.key
-  redis:
-    image: redis:latest
-    container_name: redis
+  mongo:
+    image: mongo:latest
     ports:
-      - 6379:6379
+      - 27017:27017

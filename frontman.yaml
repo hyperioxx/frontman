@@ -1,8 +1,12 @@
 global:
   service_type: SERVICE_TYPE
   services_file: SERVICES_FILE
-  redis_namespace: REDIS_NAMESPACE
   redis_uri: REDIS_URI
+  redis_namespace: REDIS_NAMESPACE
+  mongo_uri: MONGO_URI
+  mongo_db_name: MONGO_DB_NAME
+  mongo_collection_name: MONGO_COLLECTION_NAME
+
 
 api:
   addr: API_ADDR

@@ -9,10 +9,13 @@ import (
 
 // GlobalConfig holds the global application configuration
 type GlobalConfig struct {
-	ServiceType    string `yaml:"service_type"`
-	ServicesFile   string `yaml:"services_file"`
-	RedisNamespace string `yaml:"redis_namespace"`
-	RedisURI       string `yaml:"redis_uri"`
+	ServiceType         string `yaml:"service_type"`
+	ServicesFile        string `yaml:"services_file"`
+	RedisURI            string `yaml:"redis_uri"`
+	RedisNamespace      string `yaml:"redis_namespace"`
+	MongoURI            string `yaml:"mongo_uri"`
+	MongoDatabaseName   string `yaml:"mongo_db_name"`
+	MongoCollectionName string `yaml:"mongo_collection_name"`
 }
 
 // SSLConfig holds the SSL configuration
