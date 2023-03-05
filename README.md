@@ -17,7 +17,7 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 
 ## Features
 - Reverse proxy requests to backend services
-- Dynamic backend service configuration using Redis as a backend database
+- Dynamic backend service configuration using Yaml, Redis or MongoDB as a backend database
 - Automatic refresh of connections to upstream targets with configurable timeouts and maximum idle connections
 - TLS encryption for secure communication with clients
 - Option to strip the service path from requests before forwarding to upstream targets
@@ -30,19 +30,22 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 Frontman is configured using environment variables. The following variables are supported:
 |Environment Variable| Description| Default|
 |:--------------------:|:--------------:|:--------------:|
-|FRONTMAN_SERVICE_TYPE	|The service type to use|	yaml|
-|FRONTMAN_SERVICES_FILE	|The path to the services file	|services.yaml|
-|FRONTMAN_REDIS_NAMESPACE|	The namespace used to prefix all Redis keys	|frontman|
-|FRONTMAN_REDIS_URI	|The URI of the Redis instance used for storing backend service configuration	|redis://localhost:6379|
-|FRONTMAN_API_ADDR	|The address and port on which the API should listen for incoming requests|	0.0.0.0:8080|
-|FRONTMAN_API_SSL_ENABLED|	Whether or not the API should use SSL/TLS encryption|	false|
+|FRONTMAN_SERVICE_TYPE	|The service type to use|	`yaml`|
+|FRONTMAN_SERVICES_FILE	|The path to the services file	|`services.yaml`|
+|FRONTMAN_REDIS_NAMESPACE|	The namespace used to prefix all Redis keys	|`frontman`|
+|FRONTMAN_REDIS_URL	|The URL of the Redis instance used for storing service registry |`redis://localhost:6379`|
+|FRONTMAN_MONGO_URL	|The URL of the Mongo instance used for storing service registry |`mongodb://localhost:27017`|
+|FRONTMAN_MONGO_DB_NAME	| The name of the MongoDB database where the service registry is stored. |`frontman`|
+|FRONTMAN_MONGO_COLLECTION_NAME	| The name of the MongoDB collection where the service registry is stored. |`services`|
+|FRONTMAN_API_ADDR	|The address and port on which the API should listen for incoming requests|	`0.0.0.0:8080`|
+|FRONTMAN_API_SSL_ENABLED|	Whether or not the API should use SSL/TLS encryption|	`false`|
 |FRONTMAN_API_SSL_CERT	|The path to the API SSL/TLS certificate file||	
 |FRONTMAN_API_SSL_KEY|	The path to the API SSL/TLS key file	||
-|FRONTMAN_GATEWAY_ADDR	|The address and port on which the gateway should listen for incoming requests|	0.0.0.0:8000|
-|FRONTMAN_GATEWAY_SSL_ENABLED|	Whether or not the gateway should use SSL/TLS encryption|	false|
+|FRONTMAN_GATEWAY_ADDR	|The address and port on which the gateway should listen for incoming requests|	`0.0.0.0:8000`|
+|FRONTMAN_GATEWAY_SSL_ENABLED|	Whether or not the gateway should use SSL/TLS encryption|	`false`|
 |FRONTMAN_GATEWAY_SSL_CERT|	The path to the gateway SSL/TLS certificate file||	
 |FRONTMAN_GATEWAY_SSL_KEY|	The path to the gateway SSL/TLS key file	||
-|FRONTMAN_LOG_LEVEL|	The log level to use	|info|
+|FRONTMAN_LOG_LEVEL|	The log level to use	|`info`|
 
 #### Frontman Configuration File
 
@@ -53,23 +56,23 @@ The configuration file is written in YAML format and is structured as follows:
 global:
   service_type: SERVICE_TYPE
   services_file: SERVICES_FILE
-  redis_namespace: REDIS_NAMESPACE
   redis_uri: REDIS_URI
-
+  redis_namespace: REDIS_NAMESPACE
+  mongo_uri: MONGO_URI
+  mongo_db_name: MONGO_DB_NAME
+  mongo_collection_name: MONGO_COLLECTION_NAME
 api:
   addr: API_ADDR
   ssl:
     enabled: API_SSL_ENABLED
     cert: API_SSL_CERT
     key: API_SSL_KEY
-
 gateway:
   addr: GATEWAY_ADDR
   ssl:
     enabled: GATEWAY_SSL_ENABLED
     cert: GATEWAY_SSL_CERT
     key: GATEWAY_SSL_KEY
-
 logging:
   level: LOG_LEVEL
 
@@ -78,12 +81,15 @@ logging:
 #### Global Section
 The global section contains global configuration options that apply to both the API and Gateway.
 
-|Key| Description|	Default Value|
+|Key| Description|Default Value|
 |:--:|:---:|:---:|
-|service_type|	The type of service registry used to store backend services. Valid options are yaml and redis.|	yaml|
-|services_file|	The path to the YAML file used to store backend services when using the yaml service registry.|	services.yaml|
+|service_type|	The type of service registry used to store backend services. Valid options are yaml and redis.|	`yaml`|
+|services_file|	The path to the YAML file used to store backend services when using the yaml service registry.|	`services.yaml`|
 |redis_namespace|	The namespace used to prefix all Redis keys when using the redis service registry.|	frontman|
-|redis_uri|is a string representing the URI of the Redis server that the application will use to store and retrieve backend services data. ||
+|redis_uri|is a string representing the URI of the Redis server that the application will use to store and retrieve backend services data. |`redis://localhost:6379`|
+|mongo_uri|	is a string representing the URI of the MongoDB server that the application will use to store and retrieve backend services data.|`mongodb://localhost:27017`|
+mongo_db_name|	is a string representing the name of the MongoDB database where the backend services will be stored.|`frontman`|
+mongo_collection_name|	is a string representing the name of the MongoDB collection where the backend services will be stored.|	`services`|
 
 #### API Section
 The api section contains configuration options for the Frontman API.
@@ -135,12 +141,21 @@ This will remove all binaries from the bin directory.
 
 #### Running Frontman Locally
 
-Once you have the binary, you can start Frontman by running:
+After downloading or building Frontman, you can run it locally by providing a configuration file with the -config flag. The configuration file specifies the configuration options. Before running Frontman, make sure to review the configuration file to understand the options and backend service configurations.
+
+To start Frontman, navigate to the directory containing the binary and run the following command:
 
 ```bash
-$ ./frontman
+$ ./frontman -config /path/to/config.yml
 ```
-This will start Frontman with the default configuration, using the Redis instance running on localhost:6379.
+
+Replace /path/to/config.yml with the actual path to your configuration file. This command will start Frontman with the specified configuration options. You can then make requests to Frontman's API or Gateway at the specified endpoints to have them forwarded to the configured backend services.
+
+Frontman does not provide a way to configure backend services via the configuration file. Instead, you can use Frontman's API to add, update, or remove backend services dynamically. The API allows you to manage backend services in real-time without having to restart Frontman.
+
+To add a backend service, send a POST request to /api/backend-services with the backend service configuration in the request body. To update a backend service, send a PUT request to /api/backend-services/{name} with the updated backend service configuration in the request body. To remove a backend service, send a DELETE request to /api/backend-services/{name}.
+
+Once backend services have been defined and stored in the service registry, Frontman can be configured to use that service registry by specifying the appropriate service type and configuration parameters in the global config file.
 
 #### Running Frontman in Docker
 Frontman can also be run as a Docker container. Here's an example command to start Frontman in Docker, assuming your Redis instance is running on localhost:
@@ -148,21 +163,34 @@ Frontman can also be run as a Docker container. Here's an example command to sta
 ```bash
 $ docker run -p 8080:8080 hyperioxx/frontman:latest
 ```
-This command starts a new container, maps port 8080 on the host to port 8080 in the container, and sets the FRONTMAN_REDIS_URL environment variable to the URL of the Redis instance. Note that in this example, we're using host.docker.internal to reference the Redis instance running on the host machine, but you can replace this with the actual IP or hostname of your Redis instance.
-
+This command starts a new container, maps port 8080 on the host to port 8080 in the container
 
 ## Managing Backend Services
-Frontman uses Redis to store the configuration for backend services. Backend services are represented as JSON objects and stored in a Redis list. Here's an example of a backend service configuration:
+Frontman uses various storage systems to manage backend service configurations. Backend services are represented as JSON objects and stored in a data storage system. Here's an example of a backend service configuration:
+
+**Note:** *The loadBalancerPolicy configuration option is currently not active, but the option exists for future implementation of load balancing policies.*
 
 ```json
 {
-	"name": "Example Service",
-	"scheme": "http",
-	"upstreamTargets":["service1:8000", "service2:8000"],
-	"path": "/test",
-	"domain": "",
-	"maxIdleConns": 100,
-	"maxIdleTime": 60
+  "name": "test_service",
+  "scheme": "http",
+  "upstreamTargets": [
+    "http://localhost:8080"
+  ],
+  "path": "/api/test",
+  "domain": "localhost",
+  "healthCheck": "/health",
+  "retryAttempts": 3,
+  "timeout": 10,
+  "maxIdleConns": 100,
+  "maxIdleTime": 30,
+  "stripPath": true,
+  "loadBalancerPolicy": { 
+    "type": "",
+    "options": {
+      "weighted": {}
+    }
+  }
 }
 ```
 
