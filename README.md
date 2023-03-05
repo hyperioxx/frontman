@@ -57,16 +57,93 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 - Written in Go for efficient performance and concurrency support
   
 ## Usage
-#### Configuration
+### Configuration
 
+#### Env Variables
 Frontman is configured using environment variables. The following variables are supported:
 |Environment Variable| Description| Default|
 |:--------------------:|:--------------:|:--------------:|
+|FRONTMAN_SERVICE_TYPE|The service type to use|`yaml`|
+|FRONTMAN_SERVICES_FILE|The path to the services file.|`services.yaml`|
+|FRONTMAN_LOG_LEVEL|The log level to use|`info`|
 |FRONTMAN_API_ADDR | The address and port on which the /api/services endpoint should listen for incoming requests | ```0.0.0.0:8080```|
 |FRONTMAN_GATEWAY_ADDR | The address and port on which the gateway should listen for incoming requests| ```0.0.0.0:8000```|
-|FRONTMAN_REDIS_URL | The URL of the Redis instance used for storing backend service configuration |```redis://localhost:6379```
+|FRONTMAN_REDIS_URI | The URI of the Redis instance used for storing backend service configuration |```redis://localhost:6379```
 
-#### Starting Frontman
+#### Frontman Configuration File
+
+This describes the structure and options of the Frontman configuration file. This file is used to configure the Frontman API gateway and services.
+
+The configuration file is written in YAML format and is structured as follows:
+```yaml
+global:
+  service_type: [SERVICE TYPE]
+  services_file: [SERVICES FILE]
+  redis_namespace: [REDIS NAMESPACE]
+  redis_uri: [REDIS URI]
+
+api:
+  addr: [API ADDRESS]
+
+gateway:
+  addr: [GATEWAY ADDRESS]
+
+logging:
+  level: [LOG LEVEL]
+
+```
+
+#### Global Section
+The global section contains global configuration options that apply to both the API and Gateway.
+
+|Key| Description|	Default Value|
+|:--:|:---:|:---:|
+|service_type|	The type of service registry used to store backend services. Valid options are yaml and redis.|	yaml|
+|services_file|	The path to the YAML file used to store backend services when using the yaml service registry.|	services.yaml|
+|redis_namespace|	The namespace used to prefix all Redis keys when using the redis service registry.|	frontman|
+|redis_uri|is a string representing the URI of the Redis server that the application will use to store and retrieve backend services data. ||
+
+#### API Section
+The api section contains configuration options for the Frontman API.
+
+|Key| Description|Default Value|
+|:--:|:---:|:---:|
+|addr|	The address on which the Frontman API will listen.|	0.0.0.0:8080|
+
+#### Gateway Section
+The gateway section contains configuration options for the Frontman Gateway.
+
+|Key| Description|Default Value|
+|:--:|:---:|:---:|
+|addr|	The address on which the Frontman Gateway will listen.	|0.0.0.0:8000|
+
+#### Logging Section
+The logging section contains configuration options for the Frontman logging.
+
+|Key| Description|Default Value|
+|:--:|:---:|:---:|
+|level|	The log level of the Frontman logging. Valid options are debug, info, warn, error, and fatal.|	info
+
+#### Configuration Options
+`service_type`
+The service_type option specifies the type of service registry used to store backend services. The two valid options are yaml and redis. When using the yaml service registry, the services_file option is also required.
+
+`services_file`
+The services_file option specifies the path to the YAML file used to store backend services when using the yaml service registry. This option is required when using the yaml service registry.
+
+`redis_namespace`
+The redis_namespace option specifies the namespace used to prefix all Redis keys when using the redis service registry.
+
+`api.addr`
+The api.addr option specifies the address on which the Frontman API will listen.
+
+`gateway.addr`
+The gateway.addr option specifies the address on which the Frontman Gateway will listen.
+
+`logging.level`
+The logging.level option specifies the log level of the Frontman logging. Valid options are debug, info, warn, error, and fatal. The default log level is info.
+
+### Starting Frontman
 To start Frontman, you can download the latest release binary for your platform from the releases page or build it from source.
 
 ##### Building from Source

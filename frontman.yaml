@@ -1,0 +1,11 @@
+global:
+  service_type: SERVICE_TYPE
+  services_file: SERVICES_FILE
+  redis_namespace: REDIS_NAMESPACE
+  redis_uri: REDIS_URI
+api:
+  addr: API_ADDR
+gateway:
+  addr: GATEWAY_ADDR
+logging:
+  level: LOG_LEVEL

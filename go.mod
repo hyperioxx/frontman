@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/go-redis/redis/v9 v9.0.0-rc.2
+	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	golang.org/x/oauth2 v0.5.0
 )

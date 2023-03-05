@@ -1,20 +1,39 @@
 package main
 
 import (
-	"github.com/hyperioxx/frontman"
+	"flag"
 	"log"
+
+	"github.com/hyperioxx/frontman"
+	"github.com/hyperioxx/frontman/config"
 )
 
 func main() {
 
-	// Create a new Gateway instance
-	gateway, err := frontman.NewGateway(frontman.NewRedisClient)
+	// Define command-line flags
+	var configFile string
+	flag.StringVar(&configFile, "config", "", "path to configuration file")
+
+	// Parse command-line flags
+	flag.Parse()
+
+	// Load configuration from file or use default
+	configPath := configFile
+	if configPath == "" {
+		configPath = "frontman.yaml"
+	}
+
+	config, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to load configuration: %v", err)
+	}
+
+	// Create a new Gateway instance
+	gateway, err := frontman.NewGateway(config)
+	if err != nil {
+		log.Fatalf("failed to create gateway: %v", err)
 	}
 
 	// Start the server
-	if err := gateway.Start(); err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(gateway.Start())
 }

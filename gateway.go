@@ -7,34 +7,20 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-redis/redis/v9"
 	"github.com/gorilla/mux"
+	"github.com/hyperioxx/frontman/config"
+	"github.com/hyperioxx/frontman/service"
 )
 
 // Gateway contains the backend services and the router
 type Gateway struct {
 	router          *mux.Router
 	service         *mux.Router
-	backendServices *BackendServices
+	backendServices service.ServiceRegistry
+	conf            *config.Config
 }
 
-func NewRedisClient(ctx context.Context, uri string) (*redis.Client, error) {
-	opt, err := redis.ParseURL(uri)
-	if err != nil {
-		return nil, err
-	}
-
-	client := redis.NewClient(opt)
-
-	_, err = client.Ping(ctx).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
-}
-
-func NewServicesRouter(backendServices *BackendServices) *mux.Router {
+func NewServicesRouter(backendServices service.ServiceRegistry) *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/services", getServicesHandler(backendServices)).Methods("GET")
@@ -47,22 +33,13 @@ func NewServicesRouter(backendServices *BackendServices) *mux.Router {
 }
 
 // NewGateway creates a new Gateway instance with a Redis client connection factory
-func NewGateway(redisFactory func(ctx context.Context, uri string) (*redis.Client, error)) (*Gateway, error) {
+func NewGateway(conf *config.Config) (*Gateway, error) {
+
 	// Retrieve the Redis client connection from the factory
 	ctx := context.Background()
 
-	// Retrieve the database URI from the environment variables
-	uri := os.Getenv("FRONTMAN_REDIS_URL")
-	if uri == "" {
-		log.Fatal("FRONTMAN_REDIS_URL environment variable is not set")
-	}
-	redisClient, err := redisFactory(ctx, uri)
-	if err != nil {
-		return nil, err
-	}
-
 	// Create a new BackendServices instance
-	backendServices, err := NewBackendServices(ctx, redisClient)
+	backendServices, err := service.NewServiceRegistry(ctx, conf.GlobalConfig.ServiceType, conf)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +65,7 @@ func NewGateway(redisFactory func(ctx context.Context, uri string) (*redis.Clien
 		router:          proxyRouter,
 		service:         servicesRouter,
 		backendServices: backendServices,
+		conf:            conf,
 	}, nil
 }
 

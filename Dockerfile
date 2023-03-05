@@ -22,12 +22,17 @@ WORKDIR /app
 # Copy the binary from the previous stage
 COPY --from=build /go/src/app/bin/frontman .
 
+WORKDIR /app
 # Make the binary executable
 RUN chmod +x /app/frontman
+
+COPY frontman.yaml /app/frontman.yaml
+COPY entrypoint.sh /app/entrypoint.sh
+
 
 # Expose the ports
 EXPOSE 8080 8000
 
 # Start the service
-CMD ["./frontman"]
+CMD ["./entrypoint.sh"]
 

@@ -8,9 +8,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hyperioxx/frontman/service"
 )
 
-func refreshConnections(bs *BackendServices, clients map[string]*http.Client, clientLock *sync.Mutex) {
+func refreshConnections(bs service.ServiceRegistry, clients map[string]*http.Client, clientLock *sync.Mutex) {
+
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -55,7 +58,7 @@ func refreshConnections(bs *BackendServices, clients map[string]*http.Client, cl
 						}
 						clients[t] = client
 					} else {
-						clients[t].Transport.(*http.Transport).MaxIdleConns = s.MaxIdleConns 
+						clients[t].Transport.(*http.Transport).MaxIdleConns = s.MaxIdleConns
 						clients[t].Transport.(*http.Transport).IdleConnTimeout = s.MaxIdleTime * time.Second
 						clients[t].Transport.(*http.Transport).TLSHandshakeTimeout = s.Timeout * time.Second
 					}
@@ -66,30 +69,30 @@ func refreshConnections(bs *BackendServices, clients map[string]*http.Client, cl
 	}
 }
 
-func findBackendService(services []*BackendService, r *http.Request) *BackendService {
-    for _, s := range services {
-        if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
-            return s
-        }
-        if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
-            return s
-        }
-    }
-    return nil
+func findBackendService(services []*service.BackendService, r *http.Request) *service.BackendService {
+	for _, s := range services {
+		if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
+			return s
+		}
+		if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
+			return s
+		}
+	}
+	return nil
 }
 
-func getNextTargetIndex(backendService *BackendService, currentIndex int) int {
-    numTargets := len(backendService.UpstreamTargets)
-    if numTargets == 0 {
-        return -1
-    }
-    if currentIndex >= numTargets-1 {
-        return 0
-    }
-    return currentIndex + 1
+func getNextTargetIndex(backendService *service.BackendService, currentIndex int) int {
+	numTargets := len(backendService.UpstreamTargets)
+	if numTargets == 0 {
+		return -1
+	}
+	if currentIndex >= numTargets-1 {
+		return 0
+	}
+	return currentIndex + 1
 }
 
-func getClientForBackendService(bs BackendService, target string, clients map[string]*http.Client, clientLock *sync.Mutex) (*http.Client, error) {
+func getClientForBackendService(bs service.BackendService, target string, clients map[string]*http.Client, clientLock *sync.Mutex) (*http.Client, error) {
 	clientLock.Lock()
 	defer clientLock.Unlock()
 
@@ -116,15 +119,13 @@ func getClientForBackendService(bs BackendService, target string, clients map[st
 	return client, nil
 }
 
-
 func copyHeaders(dst, src http.Header) {
-    for k, v := range src {
-        dst[k] = v
-    }
+	for k, v := range src {
+		dst[k] = v
+	}
 }
 
-
-func gatewayHandler(bs *BackendServices) http.HandlerFunc {
+func gatewayHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	// Create a map to store HTTP clients for each backend service
 	var clients map[string]*http.Client = make(map[string]*http.Client)
 	var clientLock sync.Mutex
@@ -143,7 +144,6 @@ func gatewayHandler(bs *BackendServices) http.HandlerFunc {
 			return
 		}
 
-		
 		// Get the target index to use for this request
 		targetIndex := getNextTargetIndex(backendService, currentTargetIndex)
 
@@ -164,9 +164,9 @@ func gatewayHandler(bs *BackendServices) http.HandlerFunc {
 
 		// Get or create a new client for this backend service
 		client, err := getClientForBackendService(*backendService, upstreamTarget, clients, &clientLock)
-        headers := make(http.Header)
+		headers := make(http.Header)
 		// Copy the headers from the original request
-	    copyHeaders(headers, r.Header)
+		copyHeaders(headers, r.Header)
 
 		// Remove the X-Forwarded-For header to prevent spoofing
 		headers.Del("X-Forwarded-For")

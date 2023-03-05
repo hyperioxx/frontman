@@ -1,4 +1,4 @@
-package frontman
+package oauth
 
 import (
 	"context"
