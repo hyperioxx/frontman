@@ -68,6 +68,7 @@ func (r *YAMLServiceRegistry) GetServices() []*BackendService {
 	return services
 }
 
+
 // ReadFromFile reads service data from a YAML file and updates the registry
 func (r *YAMLServiceRegistry) ReadFromFile(filename string) error {
 	r.mutex.Lock()
@@ -97,6 +98,7 @@ func (r *YAMLServiceRegistry) ReadFromFile(filename string) error {
 
 	r.services = services
 	return nil
+
 }
 
 // WriteToFile writes the current registry data to a YAML file
