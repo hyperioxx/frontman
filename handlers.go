@@ -13,25 +13,25 @@ import (
 )
 
 func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
-    ticker := time.NewTicker(10 * time.Second)
-    defer ticker.Stop()
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 
-    for {
-        select {
-        case <-ticker.C:
-            clientLock.Lock()
+	for {
+		select {
+		case <-ticker.C:
+			clientLock.Lock()
 
-            // Update the transport settings for each client
-            for _, client := range clients {
-                transport := client.Transport.(*http.Transport)
-                transport.MaxIdleConns = bs.MaxIdleConns
-                transport.IdleConnTimeout = bs.MaxIdleTime * time.Second
-                transport.TLSHandshakeTimeout = bs.Timeout * time.Second
-            }
+			// Update the transport settings for each client
+			for _, client := range clients {
+				transport := client.Transport.(*http.Transport)
+				transport.MaxIdleConns = bs.MaxIdleConns
+				transport.IdleConnTimeout = bs.MaxIdleTime * time.Second
+				transport.TLSHandshakeTimeout = bs.Timeout * time.Second
+			}
 
-            clientLock.Unlock()
-        }
-    }
+			clientLock.Unlock()
+		}
+	}
 }
 
 func refreshConnections(bs service.ServiceRegistry, clients map[string]*http.Client, clientLock *sync.Mutex) {
@@ -93,17 +93,16 @@ func refreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 }
 
 func findBackendService(services []*service.BackendService, r *http.Request) *service.BackendService {
-    for _, s := range services {
-        if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
-            return s
-        }
-        if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
-            return s
-        }
-    }
-    return nil
+	for _, s := range services {
+		if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
+			return s
+		}
+		if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
+			return s
+		}
+	}
+	return nil
 }
-
 
 func getNextTargetIndex(backendService *service.BackendService, currentIndex int) int {
 	numTargets := len(backendService.UpstreamTargets)
@@ -142,7 +141,6 @@ func getClientForBackendService(bs service.BackendService, target string, client
 
 	return client, nil
 }
-
 
 func copyHeaders(dst, src http.Header) {
 	for k, v := range src {

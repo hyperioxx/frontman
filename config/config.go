@@ -1,8 +1,8 @@
 package config
 
 import (
-	"os"
 	"io/ioutil"
+	"os"
 
 	"github.com/go-yaml/yaml"
 )
@@ -24,14 +24,14 @@ type SSLConfig struct {
 
 // APIConfig holds the API server configuration
 type APIConfig struct {
-	Addr  string    `yaml:"addr"`
-	SSL   SSLConfig `yaml:"ssl"`
+	Addr string    `yaml:"addr"`
+	SSL  SSLConfig `yaml:"ssl"`
 }
 
 // GatewayConfig holds the gateway server configuration
 type GatewayConfig struct {
-	Addr  string    `yaml:"addr"`
-	SSL   SSLConfig `yaml:"ssl"`
+	Addr string    `yaml:"addr"`
+	SSL  SSLConfig `yaml:"ssl"`
 }
 
 // LoggingConfig holds the logging configuration

@@ -17,5 +17,5 @@ clean:
 
 # Test target (run all tests)
 test:
-	$(GO) test ./...
+	$(GO) test -v
 

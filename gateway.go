@@ -69,7 +69,6 @@ func NewGateway(conf *config.Config) (*Gateway, error) {
 	}, nil
 }
 
-
 func (gw *Gateway) Start() error {
 	apiAddr := gw.conf.APIConfig.Addr
 	if apiAddr == "" {
@@ -151,4 +150,3 @@ func startServer(server *http.Server) {
 		}
 	}
 }
-
