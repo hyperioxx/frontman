@@ -86,7 +86,7 @@ func TestAddServiceHandler(t *testing.T) {
 	}
 
 	// Check the response body
-	expected := "{\"name\":\"test_service\",\"scheme\":\"http\",\"upstreamTargets\":[\"http://localhost:8080\"],\"path\":\"/api/test\",\"domain\":\"localhost\",\"healthCheck\":\"/health\",\"retryAttempts\":3,\"timeout\":10,\"maxIdleConns\":100,\"maxIdleTime\":30,\"stripPath\":true}\n"
+	expected := "{\"name\":\"test_service\",\"scheme\":\"http\",\"upstreamTargets\":[\"http://localhost:8080\"],\"path\":\"/api/test\",\"domain\":\"localhost\",\"healthCheck\":\"/health\",\"retryAttempts\":3,\"timeout\":10,\"maxIdleConns\":100,\"maxIdleTime\":30,\"stripPath\":true,\"loadBalancerPolicy\":{\"type\":\"\",\"options\":{\"weighted\":{}}}}\n"
 	if rr.Body.String() != expected {
 		fmt.Println(rr.Body.String())
 		fmt.Println(expected)
