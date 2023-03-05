@@ -5,9 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/hyperioxx/frontman/service"
 )
 
-func getServicesHandler(bs *BackendServices) http.HandlerFunc {
+func getServicesHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		services := bs.GetServices()
 		jsonData, err := json.Marshal(services)
@@ -20,7 +21,7 @@ func getServicesHandler(bs *BackendServices) http.HandlerFunc {
 	}
 }
 
-func getHealthHandler(bs *BackendServices) http.HandlerFunc {
+func getHealthHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		services := bs.GetServices()
 		healthStatus := make(map[string]bool)
@@ -32,10 +33,10 @@ func getHealthHandler(bs *BackendServices) http.HandlerFunc {
 	}
 }
 
-func addServiceHandler(bs *BackendServices) http.HandlerFunc {
+func addServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the request body as a BackendService object
-		var service BackendService
+		var service service.BackendService
 		err := json.NewDecoder(r.Body).Decode(&service)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -61,7 +62,7 @@ func addServiceHandler(bs *BackendServices) http.HandlerFunc {
 
 		// If no timeout is specified, default to 10 seconds
 		if service.Timeout == 0 {
-			service.Timeout = 10 
+			service.Timeout = 10
 		}
 
 		// Add the service to the list of backend services
@@ -73,11 +74,10 @@ func addServiceHandler(bs *BackendServices) http.HandlerFunc {
 	}
 }
 
-
-func updateServiceHandler(bs *BackendServices) http.HandlerFunc {
+func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the request body as a BackendService object
-		var service BackendService
+		var service service.BackendService
 		err := json.NewDecoder(r.Body).Decode(&service)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -108,7 +108,7 @@ func updateServiceHandler(bs *BackendServices) http.HandlerFunc {
 	}
 }
 
-func removeServiceHandler(bs *BackendServices) http.HandlerFunc {
+func removeServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := mux.Vars(r)["name"]
 		bs.RemoveService(name)
