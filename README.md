@@ -1,3 +1,4 @@
+![Logo](/assets/logo.png)
 # Frontman
 Frontman is an open-source API gateway written in Go that allows you to manage your microservices and expose them as a single API endpoint. It acts as a reverse proxy and handles requests from clients, routing them to the appropriate backend service.
 
