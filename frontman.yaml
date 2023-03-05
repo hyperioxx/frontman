@@ -3,9 +3,23 @@ global:
   services_file: SERVICES_FILE
   redis_namespace: REDIS_NAMESPACE
   redis_uri: REDIS_URI
+
 api:
   addr: API_ADDR
+  ssl:
+    enabled: API_SSL_ENABLED
+    cert: API_SSL_CERT
+    key: API_SSL_KEY
+
 gateway:
   addr: GATEWAY_ADDR
+  ssl:
+    enabled: GATEWAY_SSL_ENABLED
+    cert: GATEWAY_SSL_CERT
+    key: GATEWAY_SSL_KEY
+
 logging:
   level: LOG_LEVEL
+
+
+

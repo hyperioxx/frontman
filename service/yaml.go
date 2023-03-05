@@ -11,13 +11,14 @@ import (
 
 // YAMLServiceRegistry implements the ServiceRegistry interface
 type YAMLServiceRegistry struct {
+	filename string
 	services []*BackendService
 	mutex    sync.RWMutex
 }
 
 // NewYAMLServiceRegistry creates a new YAMLServiceRegistry instance from a file
 func NewYAMLServiceRegistry(filename string) (*YAMLServiceRegistry, error) {
-	reg := &YAMLServiceRegistry{}
+	reg := &YAMLServiceRegistry{filename: filename}
 	err := reg.ReadFromFile(filename)
 	if err != nil {
 		return nil, err
@@ -30,7 +31,7 @@ func (r *YAMLServiceRegistry) AddService(service *BackendService) error {
 	r.mutex.Lock()
 	r.services = append(r.services, service)
 	r.mutex.Unlock()
-	return r.writeToFile("services.yaml")
+	return r.writeToFile(r.filename)
 }
 
 // UpdateService updates an existing backend service in the registry
@@ -40,7 +41,7 @@ func (r *YAMLServiceRegistry) UpdateService(service *BackendService) error {
 	for i, s := range r.services {
 		if s.Name == service.Name {
 			r.services[i] = service
-			return r.writeToFile("services.yaml")
+			return r.writeToFile(r.filename)
 		}
 	}
 	return errors.New("service not found")
@@ -53,7 +54,7 @@ func (r *YAMLServiceRegistry) RemoveService(name string) error {
 	for i, s := range r.services {
 		if s.Name == name {
 			r.services = append(r.services[:i], r.services[i+1:]...)
-			return r.writeToFile("services.yaml")
+			return r.writeToFile(r.filename)
 		}
 	}
 	return errors.New("service not found")

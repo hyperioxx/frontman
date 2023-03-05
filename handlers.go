@@ -12,6 +12,28 @@ import (
 	"github.com/hyperioxx/frontman/service"
 )
 
+func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
+    ticker := time.NewTicker(10 * time.Second)
+    defer ticker.Stop()
+
+    for {
+        select {
+        case <-ticker.C:
+            clientLock.Lock()
+
+            // Update the transport settings for each client
+            for _, client := range clients {
+                transport := client.Transport.(*http.Transport)
+                transport.MaxIdleConns = bs.MaxIdleConns
+                transport.IdleConnTimeout = bs.MaxIdleTime * time.Second
+                transport.TLSHandshakeTimeout = bs.Timeout * time.Second
+            }
+
+            clientLock.Unlock()
+        }
+    }
+}
+
 func refreshConnections(bs service.ServiceRegistry, clients map[string]*http.Client, clientLock *sync.Mutex) {
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -64,22 +86,24 @@ func refreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 					}
 					clientLock.Unlock()
 				}
+				refreshClients(s, clients, clientLock)
 			}
 		}
 	}
 }
 
 func findBackendService(services []*service.BackendService, r *http.Request) *service.BackendService {
-	for _, s := range services {
-		if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
-			return s
-		}
-		if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
-			return s
-		}
-	}
-	return nil
+    for _, s := range services {
+        if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
+            return s
+        }
+        if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
+            return s
+        }
+    }
+    return nil
 }
+
 
 func getNextTargetIndex(backendService *service.BackendService, currentIndex int) int {
 	numTargets := len(backendService.UpstreamTargets)
@@ -96,7 +120,7 @@ func getClientForBackendService(bs service.BackendService, target string, client
 	clientLock.Lock()
 	defer clientLock.Unlock()
 
-	// Check if the client for this backend service already exists
+	// Check if the client for this target already exists
 	if client, ok := clients[target]; ok {
 		return client, nil
 	}
@@ -118,6 +142,7 @@ func getClientForBackendService(bs service.BackendService, target string, client
 
 	return client, nil
 }
+
 
 func copyHeaders(dst, src http.Header) {
 	for k, v := range src {

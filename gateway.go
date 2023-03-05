@@ -2,9 +2,9 @@ package frontman
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -69,41 +69,86 @@ func NewGateway(conf *config.Config) (*Gateway, error) {
 	}, nil
 }
 
-// Start starts the server
-func (gw *Gateway) Start() error {
-	// Create a new HTTP server instance for the /api/services endpoint
 
-	apiAddr := os.Getenv("FRONTMAN_API_ADDR")
+func (gw *Gateway) Start() error {
+	apiAddr := gw.conf.APIConfig.Addr
 	if apiAddr == "" {
 		apiAddr = "0.0.0.0:8080"
 	}
-	gatewayAddr := os.Getenv("FRONTMAN_GATEWAY_ADDR")
+	gatewayAddr := gw.conf.GatewayConfig.Addr
 	if gatewayAddr == "" {
 		gatewayAddr = "0.0.0.0:8000"
 	}
 
-	api := &http.Server{
-		Addr:    apiAddr,
-		Handler: gw.service,
-	}
-	gateway := &http.Server{
-		Addr:    gatewayAddr,
-		Handler: gw.router,
-	}
+	var apiHandler http.Handler
+	var gatewayHandler http.Handler
 
-	// Start the main HTTP server
-	log.Println("Starting Frontman Gateway...")
-	go func() {
-		if err := gateway.ListenAndServe(); err != nil {
-			log.Fatalf("Failed to start Frontman Gateway: %v", err)
+	if gw.conf.APIConfig.SSL.Enabled {
+		apiHandler = gw.service
+		cert, err := loadCert(gw.conf.APIConfig.SSL.Cert, gw.conf.APIConfig.SSL.Key)
+		if err != nil {
+			return err
 		}
-	}()
+		apiServer := createServer(apiAddr, apiHandler, &cert)
+		log.Println("Starting Frontman Gateway with SSL...")
+		go startServer(apiServer)
+	} else {
+		apiHandler = gw.service
+		api := createServer(apiAddr, apiHandler, nil)
+		log.Println("Starting Frontman Gateway...")
+		go startServer(api)
+	}
 
-	// Start the /api/services HTTP server
-	log.Println("Starting /api/services endpoint...")
-	if err := api.ListenAndServe(); err != nil {
-		log.Fatalf("Failed to start /api/services endpoint: %v", err)
+	if gw.conf.GatewayConfig.SSL.Enabled {
+		gatewayHandler = gw.router
+		cert, err := loadCert(gw.conf.GatewayConfig.SSL.Cert, gw.conf.GatewayConfig.SSL.Key)
+		if err != nil {
+			return err
+		}
+		gatewayServer := createServer(gatewayAddr, gatewayHandler, &cert)
+		log.Println("Starting Gateway with SSL...")
+		startServer(gatewayServer)
+	} else {
+		gatewayHandler = gw.router
+		gateway := createServer(gatewayAddr, gatewayHandler, nil)
+		log.Println("Starting Gateway...")
+		startServer(gateway)
 	}
 
 	return nil
 }
+
+func loadCert(certFile, keyFile string) (tls.Certificate, error) {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		log.Fatalf("Failed to load certificate: %v", err)
+		return tls.Certificate{}, err
+	}
+	return cert, nil
+}
+
+func createServer(addr string, handler http.Handler, cert *tls.Certificate) *http.Server {
+	server := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+	}
+	if cert != nil {
+		server.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{*cert},
+		}
+	}
+	return server
+}
+
+func startServer(server *http.Server) {
+	if server.TLSConfig != nil {
+		if err := server.ListenAndServeTLS("", ""); err != nil {
+			log.Fatalf("Failed to start server with TLS: %v", err)
+		}
+	} else {
+		if err := server.ListenAndServe(); err != nil {
+			log.Fatalf("Failed to start server without TLS: %v", err)
+		}
+	}
+}
+
