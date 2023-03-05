@@ -1,12 +1,6 @@
-name: Frontman CI/CD
+name: Build and Push Docker Image on Release
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
   release:
     types: [published]
 
@@ -17,20 +11,6 @@ env:
   IMAGE_NAME: frontman
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-
-    - name: Install Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.18
-
-    - name: Test
-      run: go test -v
-
   build-and-push:
     runs-on: ubuntu-latest
     steps:
