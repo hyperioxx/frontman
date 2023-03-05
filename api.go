@@ -109,9 +109,27 @@ func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 }
 
 func removeServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
+	type Response struct {
+		Message string `json:"message,omitempty"`
+		Error   string `json:"error,omitempty"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := mux.Vars(r)["name"]
-		bs.RemoveService(name)
-		w.Write([]byte("Removed service " + name + "\n"))
+		err := bs.RemoveService(name)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(Response{
+				Message: "",
+				Error:   "missing service name",
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(Response{
+			Message: "Removed service " + name,
+			Error:   "",
+		})
 	}
 }

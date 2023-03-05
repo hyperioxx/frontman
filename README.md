@@ -14,45 +14,11 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 [![Go Report Card](https://goreportcard.com/badge/github.com/hyperioxx/frontman)](https://goreportcard.com/report/github.com/hyperioxx/frontman) [![GitHub license](https://img.shields.io/github/license/hyperioxx/frontman)](https://github.com/hyperioxx/frontman/blob/main/LICENCE) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
 <br />
 
-## Roadmap
-
-#### Phase 1: MVP (Minimum Viable Product)
-
-- Complete basic functionality to act as an API gateway.
-- Implement support for popular protocols like HTTP, HTTPS, WebSocket, and TCP.
-- Implement support for commonly used load balancing algorithms like round-robin, least connection, and IP hash.
-- Basic health check support.
-- Basic logging support.
-- Basic rate limiting support.
-
-#### Phase 2: Security and Authentication
-
-- Implement support for secure communication with clients using SSL/TLS.
-- Implement support for client authentication using certificates.
-- Implement support for basic authentication using username and password.
-- Implement support for OAuth 2.0 authentication.
-- Implement support for JSON Web Tokens (JWT) authentication.
-- Implement support for API keys.
-  
-#### Phase 3: Monitoring and Analytics
-
-- Implement support for distributed tracing with OpenTelemetry.
-- Implement support for custom metrics collection and analysis.
-- Implement support for log aggregation and analysis with popular tools like ELK stack or Splunk.
-  
-#### Phase 4: Advanced Features
-
-- Implement support for service discovery using popular tools like Consul, Zookeeper or etcd.
-- Implement support for advanced routing rules based on request headers, query parameters, or path patterns.
-- Implement support for WebSocket message routing.
-- Implement support for Webhooks and callbacks.
-- Implement support for caching using popular tools like Redis or Memcached.
-- Implement support for API versioning.
-
 ## Features
 - Reverse proxy requests to backend services
 - Dynamic backend service configuration using Redis as a backend database
 - Automatic refresh of connections to upstream targets with configurable timeouts and maximum idle connections
+- TLS encryption for secure communication with clients
 - Option to strip the service path from requests before forwarding to upstream targets
 - Written in Go for efficient performance and concurrency support
   
@@ -63,12 +29,19 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 Frontman is configured using environment variables. The following variables are supported:
 |Environment Variable| Description| Default|
 |:--------------------:|:--------------:|:--------------:|
-|FRONTMAN_SERVICE_TYPE|The service type to use|`yaml`|
-|FRONTMAN_SERVICES_FILE|The path to the services file.|`services.yaml`|
-|FRONTMAN_LOG_LEVEL|The log level to use|`info`|
-|FRONTMAN_API_ADDR | The address and port on which the /api/services endpoint should listen for incoming requests | ```0.0.0.0:8080```|
-|FRONTMAN_GATEWAY_ADDR | The address and port on which the gateway should listen for incoming requests| ```0.0.0.0:8000```|
-|FRONTMAN_REDIS_URI | The URI of the Redis instance used for storing backend service configuration |```redis://localhost:6379```
+|FRONTMAN_SERVICE_TYPE	|The service type to use|	yaml|
+|FRONTMAN_SERVICES_FILE	|The path to the services file	|services.yaml|
+|FRONTMAN_REDIS_NAMESPACE|	The namespace used to prefix all Redis keys	|frontman|
+|FRONTMAN_REDIS_URI	|The URI of the Redis instance used for storing backend service configuration	|redis://localhost:6379|
+|FRONTMAN_API_ADDR	|The address and port on which the API should listen for incoming requests|	0.0.0.0:8080|
+|FRONTMAN_API_SSL_ENABLED|	Whether or not the API should use SSL/TLS encryption|	false|
+|FRONTMAN_API_SSL_CERT	|The path to the API SSL/TLS certificate file||	
+|FRONTMAN_API_SSL_KEY|	The path to the API SSL/TLS key file	||
+|FRONTMAN_GATEWAY_ADDR	|The address and port on which the gateway should listen for incoming requests|	0.0.0.0:8000|
+|FRONTMAN_GATEWAY_SSL_ENABLED|	Whether or not the gateway should use SSL/TLS encryption|	false|
+|FRONTMAN_GATEWAY_SSL_CERT|	The path to the gateway SSL/TLS certificate file||	
+|FRONTMAN_GATEWAY_SSL_KEY|	The path to the gateway SSL/TLS key file	||
+|FRONTMAN_LOG_LEVEL|	The log level to use	|info|
 
 #### Frontman Configuration File
 
@@ -77,19 +50,27 @@ This describes the structure and options of the Frontman configuration file. Thi
 The configuration file is written in YAML format and is structured as follows:
 ```yaml
 global:
-  service_type: [SERVICE TYPE]
-  services_file: [SERVICES FILE]
-  redis_namespace: [REDIS NAMESPACE]
-  redis_uri: [REDIS URI]
+  service_type: SERVICE_TYPE
+  services_file: SERVICES_FILE
+  redis_namespace: REDIS_NAMESPACE
+  redis_uri: REDIS_URI
 
 api:
-  addr: [API ADDRESS]
+  addr: API_ADDR
+  ssl:
+    enabled: API_SSL_ENABLED
+    cert: API_SSL_CERT
+    key: API_SSL_KEY
 
 gateway:
-  addr: [GATEWAY ADDRESS]
+  addr: GATEWAY_ADDR
+  ssl:
+    enabled: GATEWAY_SSL_ENABLED
+    cert: GATEWAY_SSL_CERT
+    key: GATEWAY_SSL_KEY
 
 logging:
-  level: [LOG LEVEL]
+  level: LOG_LEVEL
 
 ```
 
@@ -109,6 +90,8 @@ The api section contains configuration options for the Frontman API.
 |Key| Description|Default Value|
 |:--:|:---:|:---:|
 |addr|	The address on which the Frontman API will listen.|	0.0.0.0:8080|
+|ssl.enabled|	Whether or not the API should use SSL/TLS encryption.|	false|
+|ssl.cert|	The path to the API SSL/TLS certificate file.||	
 
 #### Gateway Section
 The gateway section contains configuration options for the Frontman Gateway.
@@ -116,6 +99,8 @@ The gateway section contains configuration options for the Frontman Gateway.
 |Key| Description|Default Value|
 |:--:|:---:|:---:|
 |addr|	The address on which the Frontman Gateway will listen.	|0.0.0.0:8000|
+|ssl.enabled|	Whether or not the Gateway should use SSL/TLS encryption.|	false|
+|ssl.cert|	The path to the Gateway SSL/TLS certificate file.||	
 
 #### Logging Section
 The logging section contains configuration options for the Frontman logging.
@@ -123,25 +108,6 @@ The logging section contains configuration options for the Frontman logging.
 |Key| Description|Default Value|
 |:--:|:---:|:---:|
 |level|	The log level of the Frontman logging. Valid options are debug, info, warn, error, and fatal.|	info
-
-#### Configuration Options
-`service_type`
-The service_type option specifies the type of service registry used to store backend services. The two valid options are yaml and redis. When using the yaml service registry, the services_file option is also required.
-
-`services_file`
-The services_file option specifies the path to the YAML file used to store backend services when using the yaml service registry. This option is required when using the yaml service registry.
-
-`redis_namespace`
-The redis_namespace option specifies the namespace used to prefix all Redis keys when using the redis service registry.
-
-`api.addr`
-The api.addr option specifies the address on which the Frontman API will listen.
-
-`gateway.addr`
-The gateway.addr option specifies the address on which the Frontman Gateway will listen.
-
-`logging.level`
-The logging.level option specifies the log level of the Frontman logging. Valid options are debug, info, warn, error, and fatal. The default log level is info.
 
 ### Starting Frontman
 To start Frontman, you can download the latest release binary for your platform from the releases page or build it from source.
@@ -179,7 +145,7 @@ This will start Frontman with the default configuration, using the Redis instanc
 Frontman can also be run as a Docker container. Here's an example command to start Frontman in Docker, assuming your Redis instance is running on localhost:
 
 ```bash
-$ docker run -p 8080:8080 -e FRONTMAN_REDIS_URL=redis://host.docker.internal:6379 hyperioxx/frontman:latest
+$ docker run -p 8080:8080 hyperioxx/frontman:latest
 ```
 This command starts a new container, maps port 8080 on the host to port 8080 in the container, and sets the FRONTMAN_REDIS_URL environment variable to the URL of the Redis instance. Note that in this example, we're using host.docker.internal to reference the Redis instance running on the host machine, but you can replace this with the actual IP or hostname of your Redis instance.
 
@@ -198,6 +164,7 @@ Frontman uses Redis to store the configuration for backend services. Backend ser
 	"maxIdleTime": 60
 }
 ```
+
 You can add, update, and remove backend services using the following REST endpoints:
 
 - GET /services - Retrieves a list of all backend services
@@ -205,6 +172,7 @@ You can add, update, and remove backend services using the following REST endpoi
 - POST /services - Adds a new backend service
 - PUT /services/{name} - Updates an existing backend service
 - DELETE /services/{name} - Removes a backend service
+  
 ## Contributing
 If you'd like to contribute to Frontman, please fork the repository and submit a pull request. We welcome bug reports, feature requests, and code contributions.
 

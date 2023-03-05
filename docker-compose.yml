@@ -6,8 +6,18 @@ services:
     ports:
       - 8080:8080
       - 8000:8000
+    volumes:
+      - ./certs:/certs
     environment:
       - FRONTMAN_REDIS_URL=redis://redis:6379
+      - FRONTMAN_API_ADDR=0.0.0.0:8080
+      - FRONTMAN_GATEWAY_ADDR=0.0.0.0:8000
+      - FRONTMAN_API_SSL_ENABLED=true
+      - FRONTMAN_API_SSL_CERT=/certs/server.crt
+      - FRONTMAN_API_SSL_KEY=/certs/server.key
+      - FRONTMAN_GATEWAY_SSL_ENABLED=true
+      - FRONTMAN_GATEWAY_SSL_CERT=/certs/server.crt
+      - FRONTMAN_GATEWAY_SSL_KEY=/certs/server.key
   redis:
     image: redis:latest
     container_name: redis
