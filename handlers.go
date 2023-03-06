@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hyperioxx/frontman/config"
+	"github.com/hyperioxx/frontman/plugins"
 	"github.com/hyperioxx/frontman/service"
 )
 
@@ -148,7 +150,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func gatewayHandler(bs service.ServiceRegistry) http.HandlerFunc {
+func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config) http.HandlerFunc {
 	// Create a map to store HTTP clients for each backend service
 	var clients map[string]*http.Client = make(map[string]*http.Client)
 	var clientLock sync.Mutex
@@ -158,6 +160,13 @@ func gatewayHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	go refreshConnections(bs, clients, &clientLock)
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		for _, plugin := range plugs {
+			if err := plugin.PreRequest(r, bs, conf); err != nil {
+				log.Printf("Plugin error: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 		// Find the backend service that matches the request
 		backendService := findBackendService(bs.GetServices(), r)
 

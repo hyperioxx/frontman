@@ -33,6 +33,7 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 			- [Running Frontman Locally](#running-frontman-locally)
 			- [Running Frontman in Docker](#running-frontman-in-docker)
 	- [Managing Backend Services](#managing-backend-services)
+	- [Frontman Plugins](#frontman-plugins)
 	- [Contributing](#contributing)
 	- [License](#license)
 
@@ -43,6 +44,7 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 - TLS encryption for secure communication with clients
 - Option to strip the service path from requests before forwarding to upstream targets
 - Written in Go for efficient performance and concurrency support
+- Plugin system to modify requests and responses before they are sent to or received from the backend service
   
 ## Usage
 ### Configuration
@@ -51,8 +53,8 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 Frontman is configured using environment variables. The following variables are supported:
 |Environment Variable| Description| Default|
 |:--------------------:|:--------------:|:--------------:|
-|FRONTMAN_SERVICE_TYPE	|The service type to use|	`yaml`|
-|FRONTMAN_SERVICES_FILE	|The path to the services file	|`services.yaml`|
+|FRONTMAN_SERVICE_TYPE	|The service type to use|`yaml`|
+|FRONTMAN_SERVICES_FILE	|The path to the services file|`services.yaml`|
 |FRONTMAN_REDIS_NAMESPACE|	The namespace used to prefix all Redis keys	|`frontman`|
 |FRONTMAN_REDIS_URL	|The URL of the Redis instance used for storing service registry |`redis://localhost:6379`|
 |FRONTMAN_MONGO_URL	|The URL of the Mongo instance used for storing service registry |`mongodb://localhost:27017`|
@@ -60,13 +62,13 @@ Frontman is configured using environment variables. The following variables are 
 |FRONTMAN_MONGO_COLLECTION_NAME	| The name of the MongoDB collection where the service registry is stored. |`services`|
 |FRONTMAN_API_ADDR	|The address and port on which the API should listen for incoming requests|	`0.0.0.0:8080`|
 |FRONTMAN_API_SSL_ENABLED|	Whether or not the API should use SSL/TLS encryption|	`false`|
-|FRONTMAN_API_SSL_CERT	|The path to the API SSL/TLS certificate file||	
+|FRONTMAN_API_SSL_CERT	|The path to the API SSL/TLS certificate file||
 |FRONTMAN_API_SSL_KEY|	The path to the API SSL/TLS key file	||
 |FRONTMAN_GATEWAY_ADDR	|The address and port on which the gateway should listen for incoming requests|	`0.0.0.0:8000`|
 |FRONTMAN_GATEWAY_SSL_ENABLED|	Whether or not the gateway should use SSL/TLS encryption|	`false`|
-|FRONTMAN_GATEWAY_SSL_CERT|	The path to the gateway SSL/TLS certificate file||	
-|FRONTMAN_GATEWAY_SSL_KEY|	The path to the gateway SSL/TLS key file	||
-|FRONTMAN_LOG_LEVEL|	The log level to use	|`info`|
+|FRONTMAN_GATEWAY_SSL_CERT|	The path to the gateway SSL/TLS certificate file||
+|FRONTMAN_GATEWAY_SSL_KEY|	The path to the gateway SSL/TLS key file||
+|FRONTMAN_LOG_LEVEL|	The log level to use|`info`|
 
 #### Frontman Configuration File
 
@@ -75,27 +77,30 @@ This describes the structure and options of the Frontman configuration file. Thi
 The configuration file is written in YAML format and is structured as follows:
 ```yaml
 global:
-  service_type: SERVICE_TYPE
-  services_file: SERVICES_FILE
-  redis_uri: REDIS_URI
-  redis_namespace: REDIS_NAMESPACE
-  mongo_uri: MONGO_URI
-  mongo_db_name: MONGO_DB_NAME
-  mongo_collection_name: MONGO_COLLECTION_NAME
+  service_type: "my_service"
+  services_file: "services.yaml"
+  redis_uri: "redis://localhost:6379"
+  redis_namespace: "my_service"
+  mongo_uri: "mongodb://localhost:27017"
+  mongo_db_name: "my_db"
+  mongo_collection_name: "my_collection"
 api:
-  addr: API_ADDR
+  addr: ":8080"
   ssl:
-    enabled: API_SSL_ENABLED
-    cert: API_SSL_CERT
-    key: API_SSL_KEY
+    enabled: true
+    cert: "/path/to/cert.pem"
+    key: "/path/to/key.pem"
 gateway:
-  addr: GATEWAY_ADDR
+  addr: ":8081"
   ssl:
-    enabled: GATEWAY_SSL_ENABLED
-    cert: GATEWAY_SSL_CERT
-    key: GATEWAY_SSL_KEY
+    enabled: false
 logging:
-  level: LOG_LEVEL
+  level: "debug"
+plugin_config:
+  enabled: true
+  order:
+    - "/path/to/plugin1.so"
+    - "/path/to/plugin2.so"
 
 ```
 
@@ -109,8 +114,8 @@ The global section contains global configuration options that apply to both the 
 |redis_namespace|	The namespace used to prefix all Redis keys when using the redis service registry.|	frontman|
 |redis_uri|is a string representing the URI of the Redis server that the application will use to store and retrieve backend services data. |`redis://localhost:6379`|
 |mongo_uri|	is a string representing the URI of the MongoDB server that the application will use to store and retrieve backend services data.|`mongodb://localhost:27017`|
-mongo_db_name|	is a string representing the name of the MongoDB database where the backend services will be stored.|`frontman`|
-mongo_collection_name|	is a string representing the name of the MongoDB collection where the backend services will be stored.|	`services`|
+|mongo_db_name|	is a string representing the name of the MongoDB database where the backend services will be stored.|`frontman`|
+|mongo_collection_name|	is a string representing the name of the MongoDB collection where the backend services will be stored.|	`services`|
 
 #### API Section
 The api section contains configuration options for the Frontman API.
@@ -222,7 +227,64 @@ You can add, update, and remove backend services using the following REST endpoi
 - POST /services - Adds a new backend service
 - PUT /services/{name} - Updates an existing backend service
 - DELETE /services/{name} - Removes a backend service
-  
+
+## Frontman Plugins
+
+Frontman allows you to create custom plugins that can be used to extend its functionality. Plugins are implemented using the FrontmanPlugin interface, which consists of three methods:
+
+- Name(): returns the name of the plugin.
+- PreRequest(): is called before sending the request to the target service. It takes in the original request, a ServiceRegistry, and a Config. An error is returned if the plugin encounters any issues.
+- PostResponse(): is called after receiving the response from the target service. It takes in the response, a ServiceRegistry, and a Config. An error is returned if the plugin encounters any issues.
+- Close(): is called when the plugin is being shut down. An error is returned if the plugin encounters any issues.
+
+To create a plugin, implement the FrontmanPlugin interface in a Go package. Then, add the plugin to the Frontman configuration file.
+
+Here is an example of a simple Frontman plugin:
+
+```go
+type FrontmanPlugin struct {}
+
+func (p *FrontmanPlugin) Name() string {
+    return "Example Plugin"
+}
+
+func (p *FrontmanPlugin) PreRequest(req *http.Request, sr service.ServiceRegistry, cfg config.Config) error {
+    // Modify the request before sending it to the target service
+    return nil
+}
+
+func (p *FrontmanPlugin) PostResponse(resp *http.Response, sr service.ServiceRegistry, cfg config.Config) error {
+    // Modify the response before sending it back to the client
+    return nil
+}
+
+func (p *FrontmanPlugin) Close() error {
+    // Cleanup resources used by the plugin
+    return nil
+}
+```
+
+To compile a Go plugin, you first need to implement the FrontmanPlugin interface in a Go package. Once your plugin is implemented, you can compile it using the following command:
+
+```bash
+go build -buildmode=plugin -o example.so example.go
+```
+
+This will produce a shared library named example.so that can be loaded dynamically at runtime.
+
+After compiling the plugin, you need to update the Frontman configuration file to load the plugin. In the PluginConfig section of the configuration file, set enabled to true and add the path to the plugin library to the order array. For example:
+
+```
+plugin:
+  enabled: true
+  order:
+    - "/path/to/example.so"
+```
+
+In this example, the plugin library is located at /path/to/example.so. If you have multiple plugins, you can specify the order in which they should be loaded by adding their paths to the order array.
+
+Once you have updated the configuration file, restart Frontman to load the new plugins. Your plugin should now be loaded and its PreRequest and PostResponse methods will be called for each request.
+
 ## Contributing
 If you'd like to contribute to Frontman, please fork the repository and submit a pull request. We welcome bug reports, feature requests, and code contributions.
 
