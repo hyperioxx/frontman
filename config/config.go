@@ -8,6 +8,7 @@ import (
 )
 
 // GlobalConfig holds the global application configuration
+// GlobalConfig holds the global configuration
 type GlobalConfig struct {
 	ServiceType         string `yaml:"service_type"`
 	ServicesFile        string `yaml:"services_file"`
@@ -42,13 +43,21 @@ type LoggingConfig struct {
 	Level string `yaml:"level"`
 }
 
+// PluginConfig holds the plugin configuration
+type PluginConfig struct {
+	Enabled bool     `yaml:"enabled"`
+	Order   []string `yaml:"order"`
+}
+
 // Config holds the complete application configuration
 type Config struct {
 	GlobalConfig  GlobalConfig  `yaml:"global"`
 	APIConfig     APIConfig     `yaml:"api"`
 	GatewayConfig GatewayConfig `yaml:"gateway"`
 	LoggingConfig LoggingConfig `yaml:"logging"`
+	PluginConfig  PluginConfig  `yaml:"plugins"`
 }
+
 
 // LoadConfig loads the application configuration from a YAML file and environment variables
 func LoadConfig(filename string) (*Config, error) {

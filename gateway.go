@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hyperioxx/frontman/config"
+	"github.com/hyperioxx/frontman/plugins"
 	"github.com/hyperioxx/frontman/service"
 )
 
@@ -49,7 +50,19 @@ func NewGateway(conf *config.Config) (*Gateway, error) {
 	// Create a new router instance
 	proxyRouter := mux.NewRouter()
 
-	proxyRouter.HandleFunc("/{proxyPath:.+}", gatewayHandler(backendServices)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+	// Load plugins
+	var plug []plugins.FrontmanPlugin
+	
+	if conf.PluginConfig.Enabled {
+		plug, err = plugins.LoadPlugins(conf.PluginConfig.Order) 
+		if err != nil {
+			return nil, err
+		}
+
+	}
+	
+
+	proxyRouter.HandleFunc("/{proxyPath:.+}", gatewayHandler(backendServices, plug, conf)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
 		vars := mux.Vars(r)
 		proxyPath := vars["proxyPath"]
 		for _, prefix := range []string{"/api/"} {

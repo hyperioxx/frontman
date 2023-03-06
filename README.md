@@ -33,6 +33,7 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 			- [Running Frontman Locally](#running-frontman-locally)
 			- [Running Frontman in Docker](#running-frontman-in-docker)
 	- [Managing Backend Services](#managing-backend-services)
+- [Frontman Plugins](#frontman-plugins)
 	- [Contributing](#contributing)
 	- [License](#license)
 
@@ -222,7 +223,43 @@ You can add, update, and remove backend services using the following REST endpoi
 - POST /services - Adds a new backend service
 - PUT /services/{name} - Updates an existing backend service
 - DELETE /services/{name} - Removes a backend service
-  
+
+# Frontman Plugins
+
+Frontman allows you to create custom plugins that can be used to extend its functionality. Plugins are implemented using the FrontmanPlugin interface, which consists of three methods:
+
+- Name(): returns the name of the plugin.
+- PreRequest(): is called before sending the request to the target service. It takes in the original request, a ServiceRegistry, and a Config. An error is returned if the plugin encounters any issues.
+- PostResponse(): is called after receiving the response from the target service. It takes in the response, a ServiceRegistry, and a Config. An error is returned if the plugin encounters any issues.
+- Close(): is called when the plugin is being shut down. An error is returned if the plugin encounters any issues.
+
+To create a plugin, implement the FrontmanPlugin interface in a Go package. Then, add the plugin to the Frontman configuration file.
+
+Here is an example of a simple Frontman plugin:
+
+```go
+type FrontmanPlugin struct {}
+
+func (p *FrontmanPlugin) Name() string {
+    return "Example Plugin"
+}
+
+func (p *FrontmanPlugin) PreRequest(req *http.Request, sr service.ServiceRegistry, cfg config.Config) error {
+    // Modify the request before sending it to the target service
+    return nil
+}
+
+func (p *FrontmanPlugin) PostResponse(resp *http.Response, sr service.ServiceRegistry, cfg config.Config) error {
+    // Modify the response before sending it back to the client
+    return nil
+}
+
+func (p *FrontmanPlugin) Close() error {
+    // Cleanup resources used by the plugin
+    return nil
+}
+```
+
 ## Contributing
 If you'd like to contribute to Frontman, please fork the repository and submit a pull request. We welcome bug reports, feature requests, and code contributions.
 
