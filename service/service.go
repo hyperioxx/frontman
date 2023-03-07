@@ -8,6 +8,7 @@ import (
 
 	"time"
 
+	"github.com/Frontman-Labs/frontman/auth"
 	"github.com/Frontman-Labs/frontman/config"
 	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"github.com/Frontman-Labs/frontman/oauth"

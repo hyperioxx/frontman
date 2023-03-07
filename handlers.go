@@ -8,11 +8,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"encoding/json"
 
 	"github.com/Frontman-Labs/frontman/config"
 	"github.com/Frontman-Labs/frontman/plugins"
 	"github.com/Frontman-Labs/frontman/service"
-	"encoding/json"
 )
 
 func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
