@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/hyperioxx/frontman/config"
+	"github.com/Frontman-Labs/frontman/config"
 	"errors"
 )
 
