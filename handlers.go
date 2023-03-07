@@ -163,7 +163,7 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		for _, plugin := range plugs {
 			if err := plugin.PreRequest(r, bs, conf); err != nil {
 				log.Printf("Plugin error: %v", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, err.Error(), err.StatusCode())
 				return
 			}
 		}
@@ -224,6 +224,14 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		}
 
 		defer resp.Body.Close()
+
+		for _, plugin := range plugs {
+			if err := plugin.PostResponse(resp, bs, conf); err != nil {
+				log.Printf("Plugin error: %v", err)
+				http.Error(w, err.Error(), err.StatusCode())
+				return
+			}
+		}
 
 		// Log a message indicating that the response has been received from the target service
 		log.Printf("Response received from %s: %d %s", upstreamTarget, resp.StatusCode, resp.Status)

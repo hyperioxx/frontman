@@ -7,32 +7,34 @@ import (
 
 	"plugin"
 
-
 	"github.com/hyperioxx/frontman/config"
 	"github.com/hyperioxx/frontman/service"
 )
 
-// FrontmanPlugin is an interface for creating plugins for Frontman.
-type FrontmanPlugin interface {
-    // Name returns the name of the plugin.
-    Name() string
-
-    // PreRequest is called before sending the request to the target service.
-    // The method takes in the original request, a ServiceRegistry, and a Config.
-    // An error is returned if the plugin encounters any issues.
-    PreRequest(*http.Request, service.ServiceRegistry, *config.Config) error
-
-    // PostResponse is called after receiving the response from the target service.
-    // The method takes in the response, a ServiceRegistry, and a Config.
-    // An error is returned if the plugin encounters any issues.
-    PostResponse(*http.Response, service.ServiceRegistry, *config.Config) error
-
-    // Close is called when the plugin is being shut down.
-    // An error is returned if the plugin encounters any issues.
-    Close() error
+type PluginError interface {
+	StatusCode() int
+	Error() string
 }
 
+// FrontmanPlugin is an interface for creating plugins for Frontman.
+type FrontmanPlugin interface {
+	// Name returns the name of the plugin.
+	Name() string
 
+	// PreRequest is called before sending the request to the target service.
+	// The method takes in the original request, a ServiceRegistry, and a Config.
+	// An error is returned if the plugin encounters any issues.
+	PreRequest(*http.Request, service.ServiceRegistry, *config.Config) PluginError
+
+	// PostResponse is called after receiving the response from the target service.
+	// The method takes in the response, a ServiceRegistry, and a Config.
+	// An error is returned if the plugin encounters any issues.
+	PostResponse(*http.Response, service.ServiceRegistry, *config.Config) PluginError
+
+	// Close is called when the plugin is being shut down.
+	// An error is returned if the plugin encounters any issues.
+	Close() PluginError
+}
 
 // LoadPlugins loads the plugins in the specified order and returns a slice of FrontmanPlugin instances.
 func LoadPlugins(pluginPaths []string) ([]FrontmanPlugin, error) {

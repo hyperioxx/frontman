@@ -1,11 +1,10 @@
 package loadbalancer
 
-
 type RoundRobinPolicy struct {
-    currentIndex int
+	currentIndex int
 }
 
 func (p *RoundRobinPolicy) ChooseTarget(targets []string) string {
-    p.currentIndex = (p.currentIndex + 1) % len(targets)
-    return targets[p.currentIndex]
+	p.currentIndex = (p.currentIndex + 1) % len(targets)
+	return targets[p.currentIndex]
 }

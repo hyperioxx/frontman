@@ -54,38 +54,36 @@ func NewServiceRegistry(ctx context.Context, serviceType string, config *config.
 	}
 }
 
-
 // BackendService holds the details of a backend service
 type BackendService struct {
-    Name                string                    `json:"name" yaml:"name"`
-    Scheme              string                    `json:"scheme" yaml:"scheme"`
-    UpstreamTargets     []string                  `json:"upstreamTargets" yaml:"upstreamTargets"`
-    Path                string                    `json:"path,omitempty" yaml:"path,omitempty"`
-    Domain              string                    `json:"domain" yaml:"domain"`
-    HealthCheck         string                    `json:"healthCheck" yaml:"healthCheck"`
-    RetryAttempts       int                       `json:"retryAttempts,omitempty" yaml:"retryAttempts,omitempty"`
-    Timeout             time.Duration             `json:"timeout" yaml:"timeout"`
-    MaxIdleConns        int                       `json:"maxIdleConns,omitempty" yaml:"maxIdleConns,omitempty"`
-    MaxIdleTime         time.Duration             `json:"maxIdleTime" yaml:"maxIdleTime"`
-    StripPath           bool                      `json:"stripPath,omitempty" yaml:"stripPath,omitempty"`      
-    LoadBalancerPolicy  LoadBalancerPolicy        `json:"loadBalancerPolicy,omitempty" yaml:"loadBalancerPolicy,omitempty"`
-	loadBalancer        loadbalancer.LoadBalancer
-	provider            oauth.OAuthProvider 
+	Name               string             `json:"name" yaml:"name"`
+	Scheme             string             `json:"scheme" yaml:"scheme"`
+	UpstreamTargets    []string           `json:"upstreamTargets" yaml:"upstreamTargets"`
+	Path               string             `json:"path,omitempty" yaml:"path,omitempty"`
+	Domain             string             `json:"domain" yaml:"domain"`
+	HealthCheck        string             `json:"healthCheck" yaml:"healthCheck"`
+	RetryAttempts      int                `json:"retryAttempts,omitempty" yaml:"retryAttempts,omitempty"`
+	Timeout            time.Duration      `json:"timeout" yaml:"timeout"`
+	MaxIdleConns       int                `json:"maxIdleConns,omitempty" yaml:"maxIdleConns,omitempty"`
+	MaxIdleTime        time.Duration      `json:"maxIdleTime" yaml:"maxIdleTime"`
+	StripPath          bool               `json:"stripPath,omitempty" yaml:"stripPath,omitempty"`
+	LoadBalancerPolicy LoadBalancerPolicy `json:"loadBalancerPolicy,omitempty" yaml:"loadBalancerPolicy,omitempty"`
+	loadBalancer       loadbalancer.LoadBalancer
+	provider           oauth.OAuthProvider
 }
 
 type LoadBalancerPolicy struct {
-    Type            string          `json:"type" yaml:"type"`
-    Options         PolicyOptions   `json:"options,omitempty" yaml:"options,omitempty"`
+	Type    string        `json:"type" yaml:"type"`
+	Options PolicyOptions `json:"options,omitempty" yaml:"options,omitempty"`
 }
 
 type PolicyOptions struct {
-    WeightedOptions WeightedOptions `json:"weighted,omitempty" yaml:"weighted,omitempty"`
+	WeightedOptions WeightedOptions `json:"weighted,omitempty" yaml:"weighted,omitempty"`
 }
 
 type WeightedOptions struct {
-    Weights         []int           `json:"weights,omitempty" yaml:"weights,omitempty"`
+	Weights []int `json:"weights,omitempty" yaml:"weights,omitempty"`
 }
-
 
 // GetHealthCheck performs a health check on the backend service and returns true if it is healthy.
 func (bs *BackendService) GetHealthCheck() bool {
