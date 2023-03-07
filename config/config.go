@@ -26,6 +26,19 @@ type SSLConfig struct {
 	Key     string `yaml:"key"`
 }
 
+type JWTConfig struct {
+	Audience string `json:"audience" yaml:"audience"`
+	Issuer string `json:"issuer" yaml:"issuer"`
+	KeysUrl string `json:"keysUrl" yaml:"keysUrl"`
+}
+
+// Auth config
+type AuthConfig struct {
+	AuthType string `json:"type" yaml:"type"`
+	UserDataHeader string `json:"userDataHeader" yaml:"userDataHeader"`
+	JWT *JWTConfig `json:"jwt" yaml:"jwt"`
+}
+
 // APIConfig holds the API server configuration
 type APIConfig struct {
 	Addr string    `yaml:"addr"`

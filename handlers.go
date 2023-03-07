@@ -12,6 +12,7 @@ import (
 	"github.com/Frontman-Labs/frontman/config"
 	"github.com/Frontman-Labs/frontman/plugins"
 	"github.com/Frontman-Labs/frontman/service"
+	"encoding/json"
 )
 
 func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
@@ -199,7 +200,22 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		headers := make(http.Header)
 		// Copy the headers from the original request
 		copyHeaders(headers, r.Header)
+		tokenValidator := *backendService.GetTokenValidator()
+		if tokenValidator != nil {
+			// Backend service has auth config specified
+			claims, err := tokenValidator.ValidateToken(headers.Get("Authorization"))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			data, err := json.Marshal(claims)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			headers.Add(backendService.GetUserDataHeader(), string(data))
 
+		}
 		// Remove the X-Forwarded-For header to prevent spoofing
 		headers.Del("X-Forwarded-For")
 

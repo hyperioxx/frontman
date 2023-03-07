@@ -67,9 +67,11 @@ type BackendService struct {
 	MaxIdleConns       int                `json:"maxIdleConns,omitempty" yaml:"maxIdleConns,omitempty"`
 	MaxIdleTime        time.Duration      `json:"maxIdleTime" yaml:"maxIdleTime"`
 	StripPath          bool               `json:"stripPath,omitempty" yaml:"stripPath,omitempty"`
+	AuthConfig		*config.AuthConfig   `json:"auth,omitempty" yaml:"auth,omitempty"`
 	LoadBalancerPolicy LoadBalancerPolicy `json:"loadBalancerPolicy,omitempty" yaml:"loadBalancerPolicy,omitempty"`
 	loadBalancer       loadbalancer.LoadBalancer
 	provider           oauth.OAuthProvider
+	tokenValidator	*auth.TokenValidator
 }
 
 type LoadBalancerPolicy struct {
@@ -99,4 +101,27 @@ func (bs *BackendService) GetHealthCheck() bool {
 
 	log.Printf("Service %s health check failed with status code %d", bs.Name, resp.StatusCode)
 	return false
+}
+
+func (bs *BackendService) SetTokenValidator() {
+	if bs.AuthConfig == nil {
+		return
+	}
+	validator, err := auth.GetTokenValidator(*bs.AuthConfig)
+	if err != nil {
+			log.Printf("Error adding auth to backend service: %s: %s", bs.Name, err.Error())
+	} else {
+		bs.tokenValidator = &validator
+	}
+}
+
+func (bs *BackendService) GetTokenValidator() *auth.TokenValidator {
+	return bs.tokenValidator
+}
+
+func (bs *BackendService) GetUserDataHeader() string {
+	if bs.AuthConfig.UserDataHeader != "" {
+		return bs.AuthConfig.UserDataHeader
+	}
+	return "user"
 }
