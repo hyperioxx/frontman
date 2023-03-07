@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/hyperioxx/frontman"
-	"github.com/hyperioxx/frontman/config"
+	"github.com/Frontman-Labs/frontman"
+	"github.com/Frontman-Labs/frontman/config"
 )
 
 func main() {

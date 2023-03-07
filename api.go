@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Frontman-Labs/frontman/service"
 	"github.com/gorilla/mux"
-	"github.com/hyperioxx/frontman/service"
 )
 
 func getServicesHandler(bs service.ServiceRegistry) http.HandlerFunc {

@@ -12,30 +12,30 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 
 <p>&nbsp;</p>
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/hyperioxx/frontman)](https://goreportcard.com/report/github.com/hyperioxx/frontman) [![GitHub license](https://img.shields.io/github/license/hyperioxx/frontman)](https://github.com/hyperioxx/frontman/blob/main/LICENCE) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Frontman-Labs/frontman)](https://goreportcard.com/report/github.com/Frontman-Labs/frontman) [![GitHub license](https://img.shields.io/github/license/hyperioxx/frontman)](https://github.com/Frontman-Labs/frontman/blob/main/LICENCE) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
 <br />
 
 ## Glossary
 
 - [Frontman](#frontman)
-	- [Glossary](#glossary)
-	- [Features](#features)
-	- [Usage](#usage)
-		- [Configuration](#configuration)
-			- [Env Variables](#env-variables)
-			- [Frontman Configuration File](#frontman-configuration-file)
-			- [Global Section](#global-section)
-			- [API Section](#api-section)
-			- [Gateway Section](#gateway-section)
-			- [Logging Section](#logging-section)
-		- [Starting Frontman](#starting-frontman)
-				- [Building from Source](#building-from-source)
-			- [Running Frontman Locally](#running-frontman-locally)
-			- [Running Frontman in Docker](#running-frontman-in-docker)
-	- [Managing Backend Services](#managing-backend-services)
-	- [Frontman Plugins](#frontman-plugins)
-	- [Contributing](#contributing)
-	- [License](#license)
+  - [Glossary](#glossary)
+  - [Features](#features)
+  - [Usage](#usage)
+    - [Configuration](#configuration)
+      - [Env Variables](#env-variables)
+      - [Frontman Configuration File](#frontman-configuration-file)
+      - [Global Section](#global-section)
+      - [API Section](#api-section)
+      - [Gateway Section](#gateway-section)
+      - [Logging Section](#logging-section)
+    - [Starting Frontman](#starting-frontman)
+        - [Building from Source](#building-from-source)
+      - [Running Frontman Locally](#running-frontman-locally)
+      - [Running Frontman in Docker](#running-frontman-in-docker)
+  - [Managing Backend Services](#managing-backend-services)
+  - [Frontman Plugins](#frontman-plugins)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Features
 - Reverse proxy requests to backend services
@@ -96,7 +96,7 @@ gateway:
     enabled: false
 logging:
   level: "debug"
-plugin_config:
+plugins:
   enabled: true
   order:
     - "/path/to/plugin1.so"
@@ -150,7 +150,7 @@ To build the application from source, make sure you have Go installed on your sy
 
 Clone the repository:
 ```bash
-$ git clone https://github.com/hyperioxx/frontman.git
+$ git clone https://github.com/Frontman-Labs/frontman.git
 $ cd frontman
 ```
 Build the binaries:
