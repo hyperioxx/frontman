@@ -1,13 +1,13 @@
 module github.com/Frontman-Labs/frontman
 
-go 1.18
+go 1.20
 
 require (
 	github.com/go-redis/redis/v9 v9.0.0-rc.2
-	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	go.mongodb.org/mongo-driver v1.11.2
 	golang.org/x/oauth2 v0.5.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -28,5 +28,4 @@ require (
 	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
