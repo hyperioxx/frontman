@@ -37,10 +37,10 @@ func NewMongoServiceRegistry(ctx context.Context, client *mongo.Client, database
 	db := client.Database(database)
 	col := db.Collection(collection)
 	return &mongoServiceRegistry{
-		client:        client,
-		database:      db,
-		collection:    col,
-		ctx: ctx,
+		client:     client,
+		database:   db,
+		collection: col,
+		ctx:        ctx,
 	}, nil
 }
 
@@ -61,7 +61,7 @@ func (r *mongoServiceRegistry) RemoveService(name string) error {
 
 func (r *mongoServiceRegistry) GetServices() []*BackendService {
 	var services []*BackendService
-	
+
 	cursor, err := r.collection.Find(r.ctx, bson.M{})
 	if err != nil {
 		fmt.Printf("error finding services: %v\n", err)
@@ -84,4 +84,3 @@ func (r *mongoServiceRegistry) GetServices() []*BackendService {
 	log.Printf("found %d services\n", len(services))
 	return services
 }
-

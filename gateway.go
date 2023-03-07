@@ -52,15 +52,14 @@ func NewGateway(conf *config.Config) (*Gateway, error) {
 
 	// Load plugins
 	var plug []plugins.FrontmanPlugin
-	
+
 	if conf.PluginConfig.Enabled {
-		plug, err = plugins.LoadPlugins(conf.PluginConfig.Order) 
+		plug, err = plugins.LoadPlugins(conf.PluginConfig.Order)
 		if err != nil {
 			return nil, err
 		}
 
 	}
-	
 
 	proxyRouter.HandleFunc("/{proxyPath:.+}", gatewayHandler(backendServices, plug, conf)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
 		vars := mux.Vars(r)

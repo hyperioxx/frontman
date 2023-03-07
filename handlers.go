@@ -224,7 +224,7 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		}
 
 		defer resp.Body.Close()
-		
+
 		for _, plugin := range plugs {
 			if err := plugin.PostResponse(resp, bs, conf); err != nil {
 				log.Printf("Plugin error: %v", err)

@@ -58,7 +58,6 @@ type Config struct {
 	PluginConfig  PluginConfig  `yaml:"plugins"`
 }
 
-
 // LoadConfig loads the application configuration from a YAML file and environment variables
 func LoadConfig(filename string) (*Config, error) {
 	// Load the YAML configuration file
