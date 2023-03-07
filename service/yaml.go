@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/go-yaml/yaml"
+	"gopkg.in/yaml.v3"
 )
 
 // YAMLServiceRegistry implements the ServiceRegistry interface
