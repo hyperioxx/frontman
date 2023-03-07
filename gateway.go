@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/plugins"
+	"github.com/Frontman-Labs/frontman/service"
 	"github.com/gorilla/mux"
-	"github.com/hyperioxx/frontman/config"
-	"github.com/hyperioxx/frontman/plugins"
-	"github.com/hyperioxx/frontman/service"
 )
 
 // Gateway contains the backend services and the router

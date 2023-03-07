@@ -12,7 +12,7 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
 
 <p>&nbsp;</p>
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/hyperioxx/frontman)](https://goreportcard.com/report/github.com/hyperioxx/frontman) [![GitHub license](https://img.shields.io/github/license/hyperioxx/frontman)](https://github.com/hyperioxx/frontman/blob/main/LICENCE) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Frontman-Labs/frontman)](https://goreportcard.com/report/github.com/Frontman-Labs/frontman) [![GitHub license](https://img.shields.io/github/license/hyperioxx/frontman)](https://github.com/Frontman-Labs/frontman/blob/main/LICENCE) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Hyperioxx/frontman)
 <br />
 
 ## Glossary
@@ -150,7 +150,7 @@ To build the application from source, make sure you have Go installed on your sy
 
 Clone the repository:
 ```bash
-$ git clone https://github.com/hyperioxx/frontman.git
+$ git clone https://github.com/Frontman-Labs/frontman.git
 $ cd frontman
 ```
 Build the binaries:

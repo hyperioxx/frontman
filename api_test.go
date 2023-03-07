@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/hyperioxx/frontman/service"
+	"github.com/Frontman-Labs/frontman/service"
 )
 
 // TestGetServicesHandler tests the getServicesHandler function

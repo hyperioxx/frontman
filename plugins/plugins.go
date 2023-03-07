@@ -7,8 +7,8 @@ import (
 
 	"plugin"
 
-	"github.com/hyperioxx/frontman/config"
-	"github.com/hyperioxx/frontman/service"
+	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/service"
 )
 
 type PluginError interface {

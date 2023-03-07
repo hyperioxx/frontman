@@ -8,9 +8,9 @@ import (
 
 	"time"
 
-	"github.com/hyperioxx/frontman/config"
-	"github.com/hyperioxx/frontman/loadbalancer"
-	"github.com/hyperioxx/frontman/oauth"
+	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/loadbalancer"
+	"github.com/Frontman-Labs/frontman/oauth"
 )
 
 // ServiceRegistry holds the methods to interact with the backend service registry
