@@ -65,6 +65,7 @@ func (r *RedisRegistry) loadServices() error {
 		if err != nil {
 			return err
 		}
+		backendService.SetTokenValidator()
 		r.services[backendService.Name] = &backendService
 	}
 	return nil
