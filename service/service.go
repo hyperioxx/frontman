@@ -68,11 +68,11 @@ type BackendService struct {
 	MaxIdleConns       int                `json:"maxIdleConns,omitempty" yaml:"maxIdleConns,omitempty"`
 	MaxIdleTime        time.Duration      `json:"maxIdleTime" yaml:"maxIdleTime"`
 	StripPath          bool               `json:"stripPath,omitempty" yaml:"stripPath,omitempty"`
-	AuthConfig		*config.AuthConfig   `json:"auth,omitempty" yaml:"auth,omitempty"`
+	AuthConfig         *config.AuthConfig `json:"auth,omitempty" yaml:"auth,omitempty"`
 	LoadBalancerPolicy LoadBalancerPolicy `json:"loadBalancerPolicy,omitempty" yaml:"loadBalancerPolicy,omitempty"`
 	loadBalancer       loadbalancer.LoadBalancer
 	provider           oauth.OAuthProvider
-	tokenValidator	*auth.TokenValidator
+	tokenValidator     *auth.TokenValidator
 }
 
 type LoadBalancerPolicy struct {
@@ -110,7 +110,7 @@ func (bs *BackendService) SetTokenValidator() {
 	}
 	validator, err := auth.GetTokenValidator(*bs.AuthConfig)
 	if err != nil {
-			log.Printf("Error adding auth to backend service: %s: %s", bs.Name, err.Error())
+		log.Printf("Error adding auth to backend service: %s: %s", bs.Name, err.Error())
 	} else {
 		bs.tokenValidator = &validator
 	}

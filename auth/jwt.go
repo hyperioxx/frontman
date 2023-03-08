@@ -5,8 +5,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v2/jws"
 )
 
 type JWTValidator struct {
@@ -32,7 +33,7 @@ func (v JWTValidator) ValidateToken(tokenString string) (map[string]interface{},
 		splitToken := strings.Fields(tokenString)
 		// Remove leading "Bearer "
 		token := splitToken[len(splitToken)-1]
-		result, err := jwt.Parse([]byte(token), jwt.WithKeySet(v.JWKS), jwt.InferAlgorithmFromKey(true))
+		result, err := jwt.Parse([]byte(token), jwt.WithKeySet(v.JWKS, jws.WithInferAlgorithmFromKey(true)))
 		if err != nil {
 			return nil, err
 		}

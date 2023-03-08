@@ -1,6 +1,7 @@
 package frontman
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"encoding/json"
 
 	"github.com/Frontman-Labs/frontman/config"
 	"github.com/Frontman-Labs/frontman/plugins"
