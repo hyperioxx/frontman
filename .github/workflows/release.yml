@@ -35,8 +35,9 @@ jobs:
         docker push $DOCKER_USERNAME/$IMAGE_NAME:latest
 
   build-chart:
+    needs: build-and-push
     uses: frontman-labs/frontman-helm-chart/.github/workflows/build-chart.yml@main
     with:
-      image: hyperioxx/frontman:${{ github.event.release.tag_name }}
-      version: ${{ github.event.release.tag_name }}
+      image: "hyperioxx/frontman:${{ github.event.release.tag_name }}"
+      version: "${{ github.event.release.tag_name }}"
     secrets: inherit
