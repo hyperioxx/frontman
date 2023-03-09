@@ -78,7 +78,7 @@ func TestGatewayHandler(t *testing.T) {
 			maxIdleConns:       100,
 			maxIdleTime:        10,
 			timeout:            5,
-			upstreamTargets:    []string{"httpbin.org"},
+			upstreamTargets:    []string{"https://httpbin.org"},
 			requestURL:         "https://test.com/api/anything?test",
 			expectedStatusCode: http.StatusOK,
 			expectedHeader:     "plugin",
@@ -92,7 +92,7 @@ func TestGatewayHandler(t *testing.T) {
 			maxIdleConns:       100,
 			maxIdleTime:        10,
 			timeout:            5,
-			upstreamTargets:    []string{"httpbin.org"},
+			upstreamTargets:    []string{"https://httpbin.org"},
 			requestURL:         "https://test.com/notfound",
 			expectedStatusCode: http.StatusNotFound,
 			expectedHeader:     "",
@@ -106,7 +106,7 @@ func TestGatewayHandler(t *testing.T) {
 			maxIdleConns:       100,
 			maxIdleTime:        10,
 			timeout:            5,
-			upstreamTargets:    []string{"httpbin.or"},
+			upstreamTargets:    []string{"https://httpbin.or"},
 			requestURL:         "https://test.com/api/anythin?test",
 			expectedStatusCode: http.StatusBadGateway,
 			expectedHeader:     "plugin",
@@ -120,7 +120,7 @@ func TestGatewayHandler(t *testing.T) {
 			maxIdleConns:       100,
 			maxIdleTime:        10,
 			timeout:            5,
-			upstreamTargets:    []string{"httpbin.org"},
+			upstreamTargets:    []string{"https://httpbin.org"},
 			requestURL:         "https://localhost/api/anything?test",
 			expectedStatusCode: http.StatusOK,
 			expectedHeader:     "plugin",
@@ -134,7 +134,7 @@ func TestGatewayHandler(t *testing.T) {
 			maxIdleConns:       100,
 			maxIdleTime:        10,
 			timeout:            5,
-			upstreamTargets:    []string{"httpbin.org"},
+			upstreamTargets:    []string{"https://httpbin.org"},
 			requestURL:         "https://test.com/api/anything?test",
 			expectedStatusCode: http.StatusOK,
 			expectedHeader:     "plugin",
@@ -148,9 +148,23 @@ func TestGatewayHandler(t *testing.T) {
 			maxIdleConns:       100,
 			maxIdleTime:        10,
 			timeout:            5,
-			upstreamTargets:    []string{"httpbin.org"},
+			upstreamTargets:    []string{"https://httpbin.org"},
 			requestURL:         "https://localhost/api/anything/test?test",
 			expectedStatusCode: http.StatusNotFound,
+			expectedHeader:     "plugin",
+		},
+		{
+			name:               "Test Case 8 - Multiple backend targets with localhost domain",
+			domain:             "localhost",
+			path:               "/api",
+			scheme:             "http",
+			stripPath:          true,
+			maxIdleConns:       100,
+			maxIdleTime:        10,
+			timeout:            5,
+			upstreamTargets:    []string{"http://localhost:8000", "http://localhost:8001", "http://localhost:8002"},
+			requestURL:         "http://localhost/api/anything?test",
+			expectedStatusCode: http.StatusOK,
 			expectedHeader:     "plugin",
 		},
 	}
@@ -160,6 +174,7 @@ func TestGatewayHandler(t *testing.T) {
 		// Create a mock HTTP client with the desired response
 
 		bs := &service.BackendService{
+			Name:            tc.name,
 			Domain:          tc.domain,
 			Path:            tc.path,
 			Scheme:          tc.scheme,
@@ -171,7 +186,8 @@ func TestGatewayHandler(t *testing.T) {
 		}
 
 		clients := make(map[string]*http.Client)
-		clients[tc.upstreamTargets[0]] = &http.Client{Transport: &mockHTTPClient{
+
+		clients[bs.Name] = &http.Client{Transport: &mockHTTPClient{
 			mockResponse: &http.Response{
 				StatusCode: tc.expectedStatusCode,
 				Header:     make(http.Header),

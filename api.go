@@ -3,6 +3,7 @@ package frontman
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"github.com/Frontman-Labs/frontman/service"
 	"github.com/gorilla/mux"
@@ -49,15 +50,26 @@ func addServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 			return
 		}
 
-		// If the scheme is not specified, default to "http"
-		if service.Scheme == "" {
-			service.Scheme = "http"
-		}
-
-		// Check that at least one upstream target is specified
+		// Validate that at least one upstream target is specified and that each target is a valid URL
 		if len(service.UpstreamTargets) < 1 {
 			http.Error(w, "At least one upstream target is required", http.StatusBadRequest)
 			return
+		}
+		for _, target := range service.UpstreamTargets {
+			u, err := url.Parse(target)
+			if err != nil {
+				http.Error(w, "Invalid upstream target: "+target, http.StatusBadRequest)
+				return
+			}
+			if u.Scheme == "" {
+				http.Error(w, "Upstream target "+target+" must include a scheme (e.g., 'http' or 'https')", http.StatusBadRequest)
+				return
+			}
+		}
+
+		// If the scheme is not specified, default to "http"
+		if service.Scheme == "" {
+			service.Scheme = "http"
 		}
 
 		// If no timeout is specified, default to 10 seconds
@@ -69,10 +81,12 @@ func addServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 		bs.AddService(&service)
 
 		// Write a response to the HTTP client indicating that the service was added successfully
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(service)
 	}
 }
+
 
 func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

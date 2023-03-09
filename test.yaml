@@ -2,16 +2,16 @@ global:
   service_type: "yaml"
   services_file: "services.yaml"
 api:
-  addr: ":8080"
+  addr: "0.0.0.0:8080"
   ssl:
     enabled: false
 gateway:
-  addr: ":8000"
+  addr: "0.0.0.0:8000"
   ssl:
     enabled: false
 logging:
   level: "debug"
 plugins:
-  enabled: true
+  enabled: false
   order:
     - "headerchange.so"

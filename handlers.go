@@ -190,14 +190,15 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		}
 
 		// Create a new target URL with the service path and scheme
-		targetURL, err := url.Parse(backendService.Scheme + "://" + upstreamTarget + urlPath)
+
+		targetURL, err := url.Parse(upstreamTarget + urlPath)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// Get or create a new client for this backend service
-		client, err := getClientForBackendService(*backendService, upstreamTarget, clients, &clientLock)
+		client, err := getClientForBackendService(*backendService, backendService.Name, clients, &clientLock)
 		headers := make(http.Header)
 		// Copy the headers from the original request
 		copyHeaders(headers, r.Header)
@@ -237,6 +238,7 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
+			log.Printf("Error sending request: %v\n", err.Error())
 			return
 		}
 
