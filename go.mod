@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/go-redis/redis/v9 v9.0.0-rc.2
 	github.com/gorilla/mux v1.8.0
-	github.com/lestrrat-go/jwx v1.2.25
 	github.com/lestrrat-go/jwx/v2 v2.0.8
 	go.mongodb.org/mongo-driver v1.11.2
 	golang.org/x/oauth2 v0.5.0
@@ -20,7 +19,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
-	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/httprc v1.0.4 // indirect
