@@ -33,3 +33,10 @@ jobs:
       run: |
         docker push $DOCKER_USERNAME/$IMAGE_NAME:${{ env.RELEASE_VERSION }}
         docker push $DOCKER_USERNAME/$IMAGE_NAME:latest
+
+    - name: Build Helm Chart
+      uses: frontman-labs/frontman-helm-chart/.github/workflows/build-chart.yml@main
+      with:
+        image: $DOCKER_USERNAME/$IMAGE_NAME:${{ env.RELEASE_VERSION }}
+        version: ${{ env.RELEASE_VERSION }}
+      secrets: inherit
