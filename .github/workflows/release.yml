@@ -37,6 +37,6 @@ jobs:
   build-chart:
     uses: frontman-labs/frontman-helm-chart/.github/workflows/build-chart.yml@main
     with:
-      image: hyperioxx/frontman:${{ github.event.release.tag_name }}
-      version: ${{ github.event.release.tag_name }}
+      image: "hyperioxx/frontman:${{ github.event.release.tag_name }}"
+      version: "${{ github.event.release.tag_name }}"
     secrets: inherit
