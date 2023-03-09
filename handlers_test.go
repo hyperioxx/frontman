@@ -186,6 +186,7 @@ func TestGatewayHandler(t *testing.T) {
 		}
 
 		clients := make(map[string]*http.Client)
+
 		clients[bs.Name] = &http.Client{Transport: &mockHTTPClient{
 			mockResponse: &http.Response{
 				StatusCode: tc.expectedStatusCode,

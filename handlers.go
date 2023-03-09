@@ -190,6 +190,7 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		}
 
 		// Create a new target URL with the service path and scheme
+
 		targetURL, err := url.Parse(upstreamTarget + urlPath)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
