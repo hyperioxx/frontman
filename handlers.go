@@ -151,9 +151,8 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config) http.HandlerFunc {
+func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client) http.HandlerFunc {
 	// Create a map to store HTTP clients for each backend service
-	var clients map[string]*http.Client = make(map[string]*http.Client)
 	var clientLock sync.Mutex
 	var currentTargetIndex int
 
@@ -183,16 +182,18 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		// Get the upstream target URL for this request
 		upstreamTarget := backendService.UpstreamTargets[targetIndex]
 
+		var urlPath string
+		if backendService.StripPath {
+			urlPath = strings.TrimPrefix(r.URL.Path, backendService.Path)
+		} else {
+			urlPath = backendService.Path
+		}
+
 		// Create a new target URL with the service path and scheme
-		targetURL, err := url.Parse(backendService.Scheme + "://" + upstreamTarget + backendService.Path)
+		targetURL, err := url.Parse(backendService.Scheme + "://" + upstreamTarget + urlPath)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-		}
-
-		// Strip the service path from the request URL if required
-		if backendService.StripPath {
-			r.URL.Path = strings.TrimPrefix(r.URL.Path, backendService.Path)
 		}
 
 		// Get or create a new client for this backend service
@@ -200,8 +201,8 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		headers := make(http.Header)
 		// Copy the headers from the original request
 		copyHeaders(headers, r.Header)
-		tokenValidator := *backendService.GetTokenValidator()
-		if tokenValidator != nil {
+		if backendService.AuthConfig != nil {
+			tokenValidator := backendService.GetTokenValidator()
 			// Backend service has auth config specified
 			claims, err := tokenValidator.ValidateToken(headers.Get("Authorization"))
 			if err != nil {
@@ -220,12 +221,12 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		headers.Del("X-Forwarded-For")
 
 		// Log a message indicating that the request is being sent to the target service
-		log.Printf("Sending request to %s: %s %s", upstreamTarget, r.Method, r.URL.Path)
+		log.Printf("Sending request to %s: %s %s", upstreamTarget, r.Method, urlPath)
 
 		// Send the request to the target service using the client with the specified transport
 		resp, err := client.Do(&http.Request{
 			Method:        r.Method,
-			URL:           targetURL.ResolveReference(r.URL),
+			URL:           targetURL,
 			Proto:         r.Proto,
 			ProtoMajor:    r.ProtoMajor,
 			ProtoMinor:    r.ProtoMinor,

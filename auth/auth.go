@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"github.com/Frontman-Labs/frontman/config"
 	"errors"
+	"github.com/Frontman-Labs/frontman/config"
 )
 
 type TokenValidator interface {
@@ -11,9 +11,9 @@ type TokenValidator interface {
 
 func GetTokenValidator(conf config.AuthConfig) (TokenValidator, error) {
 	switch conf.AuthType {
-		case "jwt":
-			return NewJWTValidator(conf.JWT.Audience, conf.JWT.Issuer, conf.JWT.KeysUrl), nil
-		default:
-			return nil, errors.New("Unrecognized auth type specified")
+	case "jwt":
+		return NewJWTValidator(conf.JWT.Audience, conf.JWT.Issuer, conf.JWT.KeysUrl), nil
+	default:
+		return nil, errors.New("Unrecognized auth type specified")
 	}
 }

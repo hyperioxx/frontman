@@ -116,13 +116,13 @@ func (bs *BackendService) SetTokenValidator() {
 	}
 }
 
-func (bs *BackendService) GetTokenValidator() *auth.TokenValidator {
+func (bs *BackendService) GetTokenValidator() auth.TokenValidator {
 	if bs.AuthConfig != nil && bs.tokenValidator == nil {
 		// Token validator has not been instantiated for this backend service
 		// Instantiating here to avoid having to call setTokenValidator on each update/add
 		bs.SetTokenValidator()
 	}
-	return bs.tokenValidator
+	return *bs.tokenValidator
 }
 
 func (bs *BackendService) GetUserDataHeader() string {

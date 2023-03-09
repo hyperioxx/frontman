@@ -61,7 +61,7 @@ func NewGateway(conf *config.Config) (*Gateway, error) {
 
 	}
 
-	proxyRouter.HandleFunc("/{proxyPath:.+}", gatewayHandler(backendServices, plug, conf)).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+	proxyRouter.HandleFunc("/{proxyPath:.+}", gatewayHandler(backendServices, plug, conf, make(map[string]*http.Client))).Methods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS").MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
 		vars := mux.Vars(r)
 		proxyPath := vars["proxyPath"]
 		for _, prefix := range []string{"/api/"} {
