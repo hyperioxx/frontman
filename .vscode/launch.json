@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Go tests",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}",
+            "args": [],
+            "env": {},
+            "showLog": true,
+            "debugAdapter": "legacy",
+            "port": 2345
+        }
+    ]
+}
