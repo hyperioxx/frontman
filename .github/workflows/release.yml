@@ -37,6 +37,6 @@ jobs:
   build-chart:
     uses: frontman-labs/frontman-helm-chart/.github/workflows/build-chart.yml@main
     with:
-      image: $DOCKER_USERNAME/$IMAGE_NAME:${{ env.RELEASE_VERSION }}
-      version: ${{ env.RELEASE_VERSION }}
+      image: ${{ secrets.DOCKER_USERNAME }}/frontman:${{ github.event.release.tag_name }}
+      version: ${{ github.event.release.tag_name }}
     secrets: inherit
