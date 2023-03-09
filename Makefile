@@ -19,3 +19,5 @@ clean:
 test:
 	$(GO) test -v
 
+bench:
+	go test -v -bench=. -benchmem
