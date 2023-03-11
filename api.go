@@ -87,7 +87,6 @@ func addServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	}
 }
 
-
 func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the request body as a BackendService object

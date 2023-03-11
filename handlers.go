@@ -15,11 +15,12 @@ import (
 	"github.com/Frontman-Labs/frontman/plugins"
 	"github.com/Frontman-Labs/frontman/service"
 )
+
 type Route struct {
-	label       string
-	isEnd       bool
-	service     *service.BackendService
-	children    map[string]*Route
+	label    string
+	isEnd    bool
+	service  *service.BackendService
+	children map[string]*Route
 }
 
 func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
@@ -158,6 +159,19 @@ func buildRoutes(services []*service.BackendService) *Route {
 }
 
 func insertNode(node *Route, service *service.BackendService) {
+	// Handle domain-based routing first
+	if service.Domain != "" {
+		domainNode, ok := node.children[service.Domain]
+		if !ok {
+			domainNode = &Route{
+				label:    service.Domain,
+				children: make(map[string]*Route),
+			}
+			node.children[service.Domain] = domainNode
+		}
+		node = domainNode
+	}
+
 	segments := strings.Split(service.Path, "/")
 	for _, s := range segments {
 		if s == "" {
@@ -173,52 +187,26 @@ func insertNode(node *Route, service *service.BackendService) {
 		}
 		node = child
 	}
-	if node.isEnd {
-		// If a service already exists at the end of the path, add a new child
-		// node with a unique label to avoid overwriting it
-		childLabel := '0'
-		for {
-			child, ok := node.children[string(childLabel)]
-			if !ok {
-				break
-			}
-			node = child
-			childLabel++
-		}
-		child := &Route{
-			label:    string(childLabel),
-			children: make(map[string]*Route),
-			isEnd:    true,
-			service:  service,
-		}
-		node.children[string(childLabel)] = child
-	} else {
-		node.isEnd = true
-		node.service = service
-	}
 
-	// Handle domain-based routing
-	if service.Domain != "" {
-		domainNode, ok := node.children[service.Domain]
-		if !ok {
-			domainNode = &Route{
-				label:    service.Domain,
-				children: make(map[string]*Route),
-			}
-			node.children[service.Domain] = domainNode
-		}
-		domainNode.isEnd = true
-		domainNode.service = service
-	}
+	node.isEnd = true
+	node.service = service
 }
-
-
 
 func findBackendService(root *Route, r *http.Request) *service.BackendService {
 	node := root
 	pathSegments := strings.Split(r.URL.Path, "/")
 	domain := strings.Split(r.Host, ":")[0]
 
+	// Check for domain-based routing first
+	domainNode, ok := node.children[domain]
+	if ok {
+		if domainNode.service != nil {
+			return domainNode.service
+		}
+		node = domainNode
+	}
+
+	// Check for path-based routing
 	for i, segment := range pathSegments {
 		if segment == "" {
 			continue
@@ -226,7 +214,7 @@ func findBackendService(root *Route, r *http.Request) *service.BackendService {
 
 		child, ok := node.children[segment]
 		if !ok {
-			break
+			return node.service
 		}
 
 		if child.service != nil && child.service.Domain == domain {
@@ -245,25 +233,8 @@ func findBackendService(root *Route, r *http.Request) *service.BackendService {
 		node = child
 	}
 
-	if node.service != nil && node.service.Domain == domain {
-		return node.service
-	}
-
-	domainMap, ok := node.children[domain]
-	if ok && domainMap.isEnd {
-		return domainMap.service
-	}
-
 	return nil
 }
-
-
-
-
-
-
-
-
 
 func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client) http.HandlerFunc {
 	// Create a map to store HTTP clients for each backend service
