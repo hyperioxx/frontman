@@ -2,6 +2,7 @@ package frontman
 
 import (
 	"encoding/json"
+
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +15,12 @@ import (
 	"github.com/Frontman-Labs/frontman/plugins"
 	"github.com/Frontman-Labs/frontman/service"
 )
+type Route struct {
+	label       string
+	isEnd       bool
+	service     *service.BackendService
+	children    map[string]*Route
+}
 
 func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
 	ticker := time.NewTicker(10 * time.Second)
@@ -95,18 +102,6 @@ func refreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 	}
 }
 
-func findBackendService(services []*service.BackendService, r *http.Request) *service.BackendService {
-	for _, s := range services {
-		if s.Domain == "" && strings.HasPrefix(r.URL.Path, s.Path) {
-			return s
-		}
-		if s.Domain != "" && r.Host == s.Domain && strings.HasPrefix(r.URL.Path, s.Path) {
-			return s
-		}
-	}
-	return nil
-}
-
 func getNextTargetIndex(backendService *service.BackendService, currentIndex int) int {
 	numTargets := len(backendService.UpstreamTargets)
 	if numTargets == 0 {
@@ -151,6 +146,125 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
+func buildRoutes(services []*service.BackendService) *Route {
+	root := &Route{
+		label:    "",
+		children: make(map[string]*Route),
+	}
+	for _, s := range services {
+		insertNode(root, s)
+	}
+	return root
+}
+
+func insertNode(node *Route, service *service.BackendService) {
+	segments := strings.Split(service.Path, "/")
+	for _, s := range segments {
+		if s == "" {
+			continue
+		}
+		child, ok := node.children[s]
+		if !ok {
+			child = &Route{
+				label:    s,
+				children: make(map[string]*Route),
+			}
+			node.children[s] = child
+		}
+		node = child
+	}
+	if node.isEnd {
+		// If a service already exists at the end of the path, add a new child
+		// node with a unique label to avoid overwriting it
+		childLabel := '0'
+		for {
+			child, ok := node.children[string(childLabel)]
+			if !ok {
+				break
+			}
+			node = child
+			childLabel++
+		}
+		child := &Route{
+			label:    string(childLabel),
+			children: make(map[string]*Route),
+			isEnd:    true,
+			service:  service,
+		}
+		node.children[string(childLabel)] = child
+	} else {
+		node.isEnd = true
+		node.service = service
+	}
+
+	// Handle domain-based routing
+	if service.Domain != "" {
+		domainNode, ok := node.children[service.Domain]
+		if !ok {
+			domainNode = &Route{
+				label:    service.Domain,
+				children: make(map[string]*Route),
+			}
+			node.children[service.Domain] = domainNode
+		}
+		domainNode.isEnd = true
+		domainNode.service = service
+	}
+}
+
+
+
+func findBackendService(root *Route, r *http.Request) *service.BackendService {
+	node := root
+	pathSegments := strings.Split(r.URL.Path, "/")
+	domain := strings.Split(r.Host, ":")[0]
+
+	for i, segment := range pathSegments {
+		if segment == "" {
+			continue
+		}
+
+		child, ok := node.children[segment]
+		if !ok {
+			break
+		}
+
+		if child.service != nil && child.service.Domain == domain {
+			if i == len(pathSegments)-1 {
+				return child.service
+			}
+			node = child
+			continue
+		}
+
+		if child.service != nil && child.service.Domain == "" {
+			node = child
+			continue
+		}
+
+		node = child
+	}
+
+	if node.service != nil && node.service.Domain == domain {
+		return node.service
+	}
+
+	domainMap, ok := node.children[domain]
+	if ok && domainMap.isEnd {
+		return domainMap.service
+	}
+
+	return nil
+}
+
+
+
+
+
+
+
+
+
 func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client) http.HandlerFunc {
 	// Create a map to store HTTP clients for each backend service
 	var clientLock sync.Mutex
@@ -160,6 +274,8 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 	go refreshConnections(bs, clients, &clientLock)
 
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		root := buildRoutes(bs.GetServices())
 		for _, plugin := range plugs {
 			if err := plugin.PreRequest(r, bs, conf); err != nil {
 				log.Printf("Plugin error: %v", err)
@@ -167,8 +283,9 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 				return
 			}
 		}
+
 		// Find the backend service that matches the request
-		backendService := findBackendService(bs.GetServices(), r)
+		backendService := findBackendService(root, r)
 
 		// If the backend service was not found, return a 404 error
 		if backendService == nil {

@@ -12,6 +12,28 @@
             "showLog": true,
             "debugAdapter": "legacy",
             "port": 2345
+        },
+        {
+            "name": "Debug frontman",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/frontman",
+            "args": [
+                "-config",
+                "test.yaml"
+            ],
+            "env": {},
+            "showLog": true,
+            "trace": true,
+            "dlvLoadConfig": {
+                "followPointers": true,
+                "maxVariableRecurse": 3,
+                "maxStringLen": 64,
+                "maxArrayValues": 64,
+                "maxStructFields": -1
+            },
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
