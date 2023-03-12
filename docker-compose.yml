@@ -4,18 +4,18 @@ services:
   gateway:
     image: hyperioxx/frontman:latest
     ports:
-      - 8080:8080
-      - 8000:8000
+      - 8082:8080
+      - 8002:8000
     volumes:
       - ./certs:/certs
     environment:
       - FRONTMAN_SERVICE_TYPE=yaml
       - FRONTMAN_MONGO_URL=mongodb://mongo:27017
-      - FRONTMAN_API_ADDR=0.0.0.0:8080
-      - FRONTMAN_GATEWAY_ADDR=0.0.0.0:8000
-      - FRONTMAN_API_SSL_ENABLED=false
-      - FRONTMAN_GATEWAY_SSL_ENABLED=false
-  mongo:
-    image: mongo:latest
-    ports:
-      - 27017:27017
+      - FRONTMAN_API_ADDR=0.0.0.0:8082
+      - FRONTMAN_GATEWAY_ADDR=0.0.0.0:8002
+      - FRONTMAN_API_SSL_ENABLED=true
+      - FRONTMAN_GATEWAY_SSL_ENABLED=true
+      - FRONTMAN_API_SSL_CERT=/certs/server.crt
+      - FRONTMAN_API_SSL_KEY=/certs/server.key
+      - FRONTMAN_GATEWAY_SSL_CERT=/certs/server.crt
+      - FRONTMAN_GATEWAY_SSL_KEY=/certs/server.key
