@@ -4,7 +4,6 @@ type WeightedRoundRobinPolicy struct {
 	basePolicy
 	baseWeights []int // TODO should validate that len(baseWeights) == len(targets) when adding new service and weights are > 0
 	// TODO update those fields when service is modified via api call
-	currentIndex  int
 	currentWeight int
 }
 

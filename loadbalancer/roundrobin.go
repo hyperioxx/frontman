@@ -2,7 +2,6 @@ package loadbalancer
 
 type RoundRobinPolicy struct {
 	basePolicy
-	currentIndex int
 }
 
 func (p *RoundRobinPolicy) ChooseTarget(targets []string) string {

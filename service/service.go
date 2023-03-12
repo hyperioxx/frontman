@@ -131,3 +131,7 @@ func (bs *BackendService) GetUserDataHeader() string {
 	}
 	return "user"
 }
+
+func (bs *BackendService) SetLoadBalancer() error {
+
+}
