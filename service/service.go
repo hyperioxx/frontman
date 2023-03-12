@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"log"
 	"net/http"
 
@@ -10,7 +11,6 @@ import (
 
 	"github.com/Frontman-Labs/frontman/auth"
 	"github.com/Frontman-Labs/frontman/config"
-	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"github.com/Frontman-Labs/frontman/oauth"
 )
 
@@ -126,6 +126,10 @@ func (bs *BackendService) GetUserDataHeader() string {
 		return bs.AuthConfig.UserDataHeader
 	}
 	return "user"
+}
+
+func (bs *BackendService) GetLoadBalancer() loadbalancer.LoadBalancer {
+	return bs.loadBalancer
 }
 
 func (bs *BackendService) SetLoadBalancer(lb loadbalancer.LoadBalancer) {

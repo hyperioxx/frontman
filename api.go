@@ -148,6 +148,11 @@ func validateService(service *service.BackendService) error {
 		service.Timeout = 10
 	}
 
+	// If no policy type is specified, default to round robin
+	if service.LoadBalancerPolicy.Type == "" {
+		service.LoadBalancerPolicy.Type = loadbalancer.RoundRobin
+	}
+
 	// Validate load-balancer policy and set
 	lb, err := validateLoadBalancerPolicy(service)
 	if err != nil {
@@ -163,7 +168,7 @@ func validateLoadBalancerPolicy(s *service.BackendService) (loadbalancer.LoadBal
 	var lb loadbalancer.LoadBalancer
 
 	switch s.LoadBalancerPolicy.Type {
-	case loadbalancer.RoundRobin, "":
+	case loadbalancer.RoundRobin:
 		lb = loadbalancer.NewRoundRobinLoadBalancer()
 	case loadbalancer.WeightedRoundRobin:
 		if len(s.LoadBalancerPolicy.Options.Weights) != len(s.UpstreamTargets) {
