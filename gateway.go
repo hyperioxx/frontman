@@ -82,52 +82,72 @@ func NewGateway(conf *config.Config) (*Gateway, error) {
 }
 
 func (gw *Gateway) Start() error {
-	apiAddr := gw.conf.APIConfig.Addr
-	if apiAddr == "" {
-		apiAddr = "0.0.0.0:8080"
-	}
-	gatewayAddr := gw.conf.GatewayConfig.Addr
-	if gatewayAddr == "" {
-		gatewayAddr = "0.0.0.0:8000"
-	}
+    apiAddr := gw.conf.APIConfig.Addr
+    if apiAddr == "" {
+        apiAddr = "0.0.0.0:8080"
+    }
+    gatewayAddr := gw.conf.GatewayConfig.Addr
+    if gatewayAddr == "" {
+        gatewayAddr = "0.0.0.0:8000"
+    }
 
-	var apiHandler http.Handler
-	var gatewayHandler http.Handler
+    var apiHandler http.Handler
+    var gatewayHandler http.Handler
 
-	if gw.conf.APIConfig.SSL.Enabled {
-		apiHandler = gw.service
-		cert, err := loadCert(gw.conf.APIConfig.SSL.Cert, gw.conf.APIConfig.SSL.Key)
-		if err != nil {
-			return err
-		}
-		apiServer := createServer(apiAddr, apiHandler, &cert)
-		log.Println("Starting Frontman Gateway with SSL...")
-		go startServer(apiServer)
-	} else {
-		apiHandler = gw.service
-		api := createServer(apiAddr, apiHandler, nil)
-		log.Println("Starting Frontman Gateway...")
-		go startServer(api)
-	}
+    if gw.conf.APIConfig.SSL.Enabled {
+        apiHandler = gw.service
+        cert, err := loadCert(gw.conf.APIConfig.SSL.Cert, gw.conf.APIConfig.SSL.Key)
+        if err != nil {
+            return err
+        }
+        apiServer := createServer(apiAddr, apiHandler, &cert)
+        log.Printf("Started Frontman API with SSL on %s\n", apiAddr)
+        go startServer(apiServer)
+    } else {
+        apiHandler = gw.service
+        api := createServer(apiAddr, apiHandler, nil)
+        log.Printf("Started Frontman API on %s\n", apiAddr)
+        go startServer(api)
+    }
 
-	if gw.conf.GatewayConfig.SSL.Enabled {
-		gatewayHandler = gw.router
-		cert, err := loadCert(gw.conf.GatewayConfig.SSL.Cert, gw.conf.GatewayConfig.SSL.Key)
-		if err != nil {
-			return err
-		}
-		gatewayServer := createServer(gatewayAddr, gatewayHandler, &cert)
-		log.Println("Starting Gateway with SSL...")
-		startServer(gatewayServer)
-	} else {
-		gatewayHandler = gw.router
-		gateway := createServer(gatewayAddr, gatewayHandler, nil)
-		log.Println("Starting Gateway...")
-		startServer(gateway)
-	}
+    if gw.conf.GatewayConfig.SSL.Enabled {
+        gatewayHandler = gw.router
+        cert, err := loadCert(gw.conf.GatewayConfig.SSL.Cert, gw.conf.GatewayConfig.SSL.Key)
+        if err != nil {
+            return err
+        }
 
-	return nil
+		// Redirect HTTP traffic to HTTPS
+        httpAddr := "0.0.0.0:80"
+        httpRedirect := createRedirectServer(httpAddr, gatewayAddr)
+        log.Printf("Started HTTP redirect server on %s\n", httpAddr)
+        go startServer(httpRedirect)
+        
+
+        gatewayServer := createServer(gatewayAddr, gatewayHandler, &cert)
+        log.Printf("Started Frontman Gateway with SSL on %s\n", gatewayAddr)
+        startServer(gatewayServer)
+    } else {
+        gatewayHandler = gw.router
+        gateway := createServer(gatewayAddr, gatewayHandler, nil)
+        log.Printf("Started Frontman Gateway on %s", gatewayAddr)
+        startServer(gateway)
+    }
+
+    return nil
 }
+
+func createRedirectServer(addr string, redirectAddr string) *http.Server {
+    redirect := func(w http.ResponseWriter, req *http.Request) {
+        httpsURL := "https://" + req.Host + req.URL.Path
+        http.Redirect(w, req, httpsURL, http.StatusMovedPermanently)
+    }
+    return &http.Server{
+        Addr:    addr,
+        Handler: http.HandlerFunc(redirect),
+    }
+}
+
 
 func loadCert(certFile, keyFile string) (tls.Certificate, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
