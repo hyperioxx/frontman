@@ -2,6 +2,8 @@ package frontman
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"net/http"
 	"net/url"
 
@@ -44,37 +46,11 @@ func addServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 			return
 		}
 
-		// Validate that the required fields are present
-		if service.Path == "" {
-			http.Error(w, "Path is a required field", http.StatusBadRequest)
+		// Validate service
+		err = validateService(&service)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
-		}
-
-		// Validate that at least one upstream target is specified and that each target is a valid URL
-		if len(service.UpstreamTargets) < 1 {
-			http.Error(w, "At least one upstream target is required", http.StatusBadRequest)
-			return
-		}
-		for _, target := range service.UpstreamTargets {
-			u, err := url.Parse(target)
-			if err != nil {
-				http.Error(w, "Invalid upstream target: "+target, http.StatusBadRequest)
-				return
-			}
-			if u.Scheme == "" {
-				http.Error(w, "Upstream target "+target+" must include a scheme (e.g., 'http' or 'https')", http.StatusBadRequest)
-				return
-			}
-		}
-
-		// If the scheme is not specified, default to "http"
-		if service.Scheme == "" {
-			service.Scheme = "http"
-		}
-
-		// If no timeout is specified, default to 10 seconds
-		if service.Timeout == 0 {
-			service.Timeout = 10
 		}
 
 		// Add the service to the list of backend services
@@ -97,15 +73,10 @@ func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 			return
 		}
 
-		// Validate that the required fields are present
-		if service.UpstreamTargets == nil || len(service.UpstreamTargets) == 0 || service.Path == "" {
-			http.Error(w, "UpstreamTargets and path are required fields", http.StatusBadRequest)
+		err = validateService(&service)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
-		}
-
-		// If the scheme is not specified, default to "http"
-		if service.Scheme == "" {
-			service.Scheme = "http"
 		}
 
 		// Update the service in the list of backend services
@@ -145,4 +116,70 @@ func removeServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 			Error:   "",
 		})
 	}
+}
+
+func validateService(service *service.BackendService) error {
+	// Validate that the required fields are present
+	if service.Path == "" {
+		return fmt.Errorf("path is a required field")
+	}
+
+	// Validate that at least one upstream target is specified and that each target is a valid URL
+	if len(service.UpstreamTargets) < 1 {
+		return fmt.Errorf("at least one upstream target is required")
+	}
+	for _, target := range service.UpstreamTargets {
+		u, err := url.Parse(target)
+		if err != nil {
+			return fmt.Errorf("Invalid upstream target: " + target)
+		}
+		if u.Scheme == "" {
+			return fmt.Errorf("Upstream target " + target + " must include a scheme (e.g., 'http' or 'https')")
+		}
+	}
+
+	// If the scheme is not specified, default to "http"
+	if service.Scheme == "" {
+		service.Scheme = "http"
+	}
+
+	// If no timeout is specified, default to 10 seconds
+	if service.Timeout == 0 {
+		service.Timeout = 10
+	}
+
+	// Validate load-balancer policy and set
+	lb, err := validateLoadBalancerPolicy(service)
+	if err != nil {
+		return err
+	}
+
+	service.SetLoadBalancer(lb)
+
+	return nil
+}
+
+func validateLoadBalancerPolicy(s *service.BackendService) (loadbalancer.LoadBalancer, error) {
+	var lb loadbalancer.LoadBalancer
+
+	switch s.LoadBalancerPolicy.Type {
+	case loadbalancer.RoundRobin, "":
+		lb = loadbalancer.NewRoundRobinLoadBalancer()
+	case loadbalancer.WeightedRoundRobin:
+		if len(s.LoadBalancerPolicy.Options.Weights) != len(s.UpstreamTargets) {
+			return nil, fmt.Errorf("mismatched lengts of weights and targets")
+		}
+
+		for _, w := range s.LoadBalancerPolicy.Options.Weights {
+			if w <= 0 {
+				return nil, fmt.Errorf("weightes must be greater than zero")
+			}
+		}
+
+		lb = loadbalancer.NewWRoundRobinLoadBalancer(s.LoadBalancerPolicy.Options.Weights)
+	default:
+		return nil, fmt.Errorf("unknown load-balancer policy: %s", s.LoadBalancerPolicy.Type)
+	}
+
+	return lb, nil
 }

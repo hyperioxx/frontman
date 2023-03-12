@@ -214,7 +214,7 @@ Frontman uses various storage systems to manage backend service configurations. 
   "loadBalancerPolicy": { 
     "type": "",
     "options": {
-      "weighted": {}
+      "weights": []
     }
   }
 }

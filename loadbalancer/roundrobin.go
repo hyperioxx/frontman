@@ -4,6 +4,10 @@ type RoundRobinPolicy struct {
 	basePolicy
 }
 
+func NewRoundRobinLoadBalancer() *RoundRobinPolicy {
+	return &RoundRobinPolicy{}
+}
+
 func (p *RoundRobinPolicy) ChooseTarget(targets []string) string {
 	p.mu.Lock()
 	defer p.mu.Unlock()

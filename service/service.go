@@ -81,10 +81,6 @@ type LoadBalancerPolicy struct {
 }
 
 type PolicyOptions struct {
-	WeightedOptions WeightedOptions `json:"weighted,omitempty" yaml:"weighted,omitempty"`
-}
-
-type WeightedOptions struct {
 	Weights []int `json:"weights,omitempty" yaml:"weights,omitempty"`
 }
 
@@ -132,6 +128,6 @@ func (bs *BackendService) GetUserDataHeader() string {
 	return "user"
 }
 
-func (bs *BackendService) SetLoadBalancer() error {
-
+func (bs *BackendService) SetLoadBalancer(lb loadbalancer.LoadBalancer) {
+	bs.loadBalancer = lb
 }

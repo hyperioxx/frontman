@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -56,6 +57,10 @@ func TestAddServiceHandler(t *testing.T) {
 		MaxIdleConns:    100,
 		MaxIdleTime:     30,
 		StripPath:       true,
+		LoadBalancerPolicy: service.LoadBalancerPolicy{
+			Type:    loadbalancer.WeightedRoundRobin,
+			Options: service.PolicyOptions{Weights: []int{3}},
+		},
 	}
 
 	// Marshal the backend service into JSON
@@ -86,7 +91,7 @@ func TestAddServiceHandler(t *testing.T) {
 	}
 
 	// Check the response body
-	expected := "{\"name\":\"test_service\",\"scheme\":\"http\",\"upstreamTargets\":[\"http://localhost:8080\"],\"path\":\"/api/test\",\"domain\":\"localhost\",\"healthCheck\":\"/health\",\"retryAttempts\":3,\"timeout\":10,\"maxIdleConns\":100,\"maxIdleTime\":30,\"stripPath\":true,\"loadBalancerPolicy\":{\"type\":\"\",\"options\":{\"weighted\":{}}}}\n"
+	expected := "{\"name\":\"test_service\",\"scheme\":\"http\",\"upstreamTargets\":[\"http://localhost:8080\"],\"path\":\"/api/test\",\"domain\":\"localhost\",\"healthCheck\":\"/health\",\"retryAttempts\":3,\"timeout\":10,\"maxIdleConns\":100,\"maxIdleTime\":30,\"stripPath\":true,\"loadBalancerPolicy\":{\"type\":\"weighted_round_robin\",\"options\":{\"weights\":[3]}}}\n"
 	if rr.Body.String() != expected {
 		fmt.Println(rr.Body.String())
 		fmt.Println(expected)

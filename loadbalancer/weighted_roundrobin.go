@@ -2,13 +2,17 @@ package loadbalancer
 
 type WeightedRoundRobinPolicy struct {
 	basePolicy
-	baseWeights []int // TODO should validate that len(baseWeights) == len(targets) when adding new service and weights are > 0
-	// TODO update those fields when service is modified via api call
+	baseWeights   []int
 	currentWeight int
 }
 
-// TODO in the constructor currentWeight = baseWeights[0]
-// [5, 2, 3]
+func NewWRoundRobinLoadBalancer(weights []int) *WeightedRoundRobinPolicy {
+	return &WeightedRoundRobinPolicy{
+		baseWeights:   weights,
+		currentWeight: weights[0],
+	}
+}
+
 func (p *WeightedRoundRobinPolicy) ChooseTarget(targets []string) string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
