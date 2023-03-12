@@ -1,25 +1,28 @@
 global:
-  service_type: "yaml"
-  services_file: "services.yaml"
-  redis_uri: "redis://localhost:6379"
-  redis_namespace: "my_service"
-  mongo_uri: "mongodb://localhost:27017"
-  mongo_db_name: "my_db"
-  mongo_collection_name: "my_collection"
+  service_type: SERVICE_TYPE
+  services_file: SERVICES_FILE
+  redis_uri: REDIS_URI
+  redis_namespace: REDIS_NAMESPACE
+  mongo_uri: MONGO_URI
+  mongo_db_name: MONGO_DB_NAME
+  mongo_collection_name: MONGO_COLLECTION_NAME
+
+
 api:
-  addr: ":8080"
+  addr: API_ADDR
   ssl:
-    enabled: false
-    cert: "/path/to/cert.pem"
-    key: "/path/to/key.pem"
+    enabled: API_SSL_ENABLED
+    cert: API_SSL_CERT
+    key: API_SSL_KEY
+
 gateway:
-  addr: ":8081"
+  addr: GATEWAY_ADDR
   ssl:
-    enabled: false
+    enabled: GATEWAY_SSL_ENABLED
+    cert: GATEWAY_SSL_CERT
+    key: GATEWAY_SSL_KEY
+
 logging:
-  level: "debug"
-# plugins:
-#   enabled: true
-#   order:
-#     - "/path/to/plugin1.so"
-#     - "/path/to/plugin2.so"
+  level: LOG_LEVEL
+
+
