@@ -2,17 +2,21 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"os"
 
 	"github.com/Frontman-Labs/frontman"
 	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/log"
 )
 
 func main() {
 
 	// Define command-line flags
 	var configFile string
+	var logLevel string
 	flag.StringVar(&configFile, "config", "", "path to configuration file")
+	flag.StringVar(&logLevel, "log-level", "", "set log level to debug")
 
 	// Parse command-line flags
 	flag.Parse()
@@ -25,15 +29,27 @@ func main() {
 
 	config, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Fatalf("failed to load configuration: %v", err)
+		fmt.Printf("failed to load configuration: %v", err)
+		os.Exit(1)
 	}
 
-	// Create a new Gateway instance
-	gateway, err := frontman.NewGateway(config)
+	if config.LoggingConfig.Level != "" && logLevel == "" {
+		logLevel = config.LoggingConfig.Level
+	} else {
+		logLevel = "info"
+	}
+	logger, err := log.NewDefaultLogger(log.ParseLevel(logLevel))
 	if err != nil {
-		log.Fatalf("failed to create gateway: %v", err)
+		fmt.Println("failed to initialize logger")
+		os.Exit(1)
+	}
+	
+	// Create a new Gateway instance
+	gateway, err := frontman.NewGateway(config, logger)
+	if err != nil {
+		logger.Fatalf("failed to create gateway: %v", err)
 	}
 
 	// Start the server
-	log.Fatal(gateway.Start())
+	logger.Fatal(gateway.Start())
 }
