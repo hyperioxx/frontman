@@ -1,4 +1,4 @@
-package frontman
+package gateway
 
 import (
 	"net/http"
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/log"
 	"github.com/Frontman-Labs/frontman/plugins"
 	"github.com/Frontman-Labs/frontman/service"
 )
@@ -211,8 +212,12 @@ func TestGatewayHandler(t *testing.T) {
 			},
 		}
 
-		handler := gatewayHandler(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients)
-		handler(w, req)
+		logger, err := log.NewZapLogger("info")
+		if err != nil {
+			t.Errorf("could not create logger due to: %s",err)
+		}
+		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger)
+		handler.ServeHTTP(w, req)
 
 		// Check the response status code
 		if w.Code != tc.expectedStatusCode {
@@ -419,9 +424,13 @@ func BenchmarkGatewayHandler(b *testing.B) {
 		mockErr: nil,
 	}}
 
-	handler := gatewayHandler(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients)
+	logger, err := log.NewZapLogger("info")
+		if err != nil {
+			b.Errorf("could not create logger due to: %s",err)
+		}
+		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger)
 
 	for i := 0; i < b.N; i++ {
-		handler(w, req)
+		handler.ServeHTTP(w, req)
 	}
 }
