@@ -96,7 +96,7 @@ func (r *YAMLServiceRegistry) ReadFromFile(filename string) error {
 		return err
 	}
 	for _, service := range services {
-		service.SetTokenValidator()
+		service.Init()
 	}
 	r.services = services
 	return nil

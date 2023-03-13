@@ -75,7 +75,7 @@ func (r *mongoServiceRegistry) GetServices() []*BackendService {
 			log.Printf("error decoding service: %v\n", err)
 			return nil
 		}
-		service.SetTokenValidator()
+		service.Init()
 		services = append(services, &service)
 	}
 	if err := cursor.Err(); err != nil {

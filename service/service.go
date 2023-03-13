@@ -100,7 +100,7 @@ func (bs *BackendService) GetHealthCheck() bool {
 	return false
 }
 
-func (bs *BackendService) SetTokenValidator() {
+func (bs *BackendService) setTokenValidator() {
 	if bs.AuthConfig == nil {
 		return
 	}
@@ -116,7 +116,7 @@ func (bs *BackendService) GetTokenValidator() auth.TokenValidator {
 	if bs.AuthConfig != nil && bs.tokenValidator == nil {
 		// Token validator has not been instantiated for this backend service
 		// Instantiating here to avoid having to call setTokenValidator on each update/add
-		bs.SetTokenValidator()
+		bs.setTokenValidator()
 	}
 	return *bs.tokenValidator
 }
@@ -132,6 +132,16 @@ func (bs *BackendService) GetLoadBalancer() loadbalancer.LoadBalancer {
 	return bs.loadBalancer
 }
 
-func (bs *BackendService) SetLoadBalancer(lb loadbalancer.LoadBalancer) {
-	bs.loadBalancer = lb
+func (bs *BackendService) setLoadBalancer() {
+	switch bs.LoadBalancerPolicy.Type {
+	case loadbalancer.RoundRobin:
+		bs.loadBalancer = loadbalancer.NewRoundRobinLoadBalancer()
+	case loadbalancer.WeightedRoundRobin:
+		bs.loadBalancer = loadbalancer.NewWRoundRobinLoadBalancer(bs.LoadBalancerPolicy.Options.Weights)
+	}
+}
+
+func (bs *BackendService) Init() {
+	bs.setTokenValidator()
+	bs.setLoadBalancer()
 }

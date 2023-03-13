@@ -148,43 +148,38 @@ func validateService(service *service.BackendService) error {
 		service.Timeout = 10
 	}
 
-	// If no policy type is specified, default to round robin
+	// If no policy type is specified, default to round-robin
 	if service.LoadBalancerPolicy.Type == "" {
 		service.LoadBalancerPolicy.Type = loadbalancer.RoundRobin
 	}
 
 	// Validate load-balancer policy and set
-	lb, err := validateLoadBalancerPolicy(service)
+	err := validateLoadBalancerPolicy(service)
 	if err != nil {
 		return err
 	}
 
-	service.SetLoadBalancer(lb)
+	service.Init()
 
 	return nil
 }
 
-func validateLoadBalancerPolicy(s *service.BackendService) (loadbalancer.LoadBalancer, error) {
-	var lb loadbalancer.LoadBalancer
-
+func validateLoadBalancerPolicy(s *service.BackendService) error {
 	switch s.LoadBalancerPolicy.Type {
 	case loadbalancer.RoundRobin:
-		lb = loadbalancer.NewRoundRobinLoadBalancer()
 	case loadbalancer.WeightedRoundRobin:
 		if len(s.LoadBalancerPolicy.Options.Weights) != len(s.UpstreamTargets) {
-			return nil, fmt.Errorf("mismatched lengts of weights and targets")
+			return fmt.Errorf("mismatched lengts of weights and targets")
 		}
 
 		for _, w := range s.LoadBalancerPolicy.Options.Weights {
 			if w <= 0 {
-				return nil, fmt.Errorf("weightes must be greater than zero")
+				return fmt.Errorf("weightes must be greater than zero")
 			}
 		}
-
-		lb = loadbalancer.NewWRoundRobinLoadBalancer(s.LoadBalancerPolicy.Options.Weights)
 	default:
-		return nil, fmt.Errorf("unknown load-balancer policy: %s", s.LoadBalancerPolicy.Type)
+		return fmt.Errorf("unknown load-balancer policy: %s", s.LoadBalancerPolicy.Type)
 	}
 
-	return lb, nil
+	return nil
 }
