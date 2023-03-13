@@ -3,11 +3,12 @@ package frontman
 import (
 	"context"
 	"crypto/tls"
-	"log"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/log"
 	"github.com/Frontman-Labs/frontman/plugins"
 	"github.com/Frontman-Labs/frontman/service"
 	"github.com/gorilla/mux"
@@ -19,6 +20,7 @@ type Gateway struct {
 	service         *mux.Router
 	backendServices service.ServiceRegistry
 	conf            *config.Config
+	log             log.Logger
 }
 
 func NewServicesRouter(backendServices service.ServiceRegistry) *mux.Router {
@@ -34,7 +36,7 @@ func NewServicesRouter(backendServices service.ServiceRegistry) *mux.Router {
 }
 
 // NewGateway creates a new Gateway instance with a Redis client connection factory
-func NewGateway(conf *config.Config) (*Gateway, error) {
+func NewGateway(conf *config.Config, log log.Logger) (*Gateway, error) {
 
 	// Retrieve the Redis client connection from the factory
 	ctx := context.Background()
@@ -78,6 +80,7 @@ func NewGateway(conf *config.Config) (*Gateway, error) {
 		service:         servicesRouter,
 		backendServices: backendServices,
 		conf:            conf,
+		log :            log,
 	}, nil
 }
 
@@ -101,13 +104,13 @@ func (gw *Gateway) Start() error {
             return err
         }
         apiServer := createServer(apiAddr, apiHandler, &cert)
-        log.Printf("Started Frontman API with SSL on %s\n", apiAddr)
-        go startServer(apiServer)
+        gw.log.Infof("Started Frontman API with SSL on %s", apiAddr)
+        go func(){if err := startServer(apiServer); err!=nil{ gw.log.Fatal(err)}}()
     } else {
         apiHandler = gw.service
         api := createServer(apiAddr, apiHandler, nil)
-        log.Printf("Started Frontman API on %s\n", apiAddr)
-        go startServer(api)
+        gw.log.Infof("Started Frontman API on %s", apiAddr)
+		go func(){if err := startServer(api); err!=nil{ gw.log.Fatal(err)}}()
     }
 
     if gw.conf.GatewayConfig.SSL.Enabled {
@@ -120,18 +123,22 @@ func (gw *Gateway) Start() error {
 		// Redirect HTTP traffic to HTTPS
         httpAddr := "0.0.0.0:80"
         httpRedirect := createRedirectServer(httpAddr, gatewayAddr)
-        log.Printf("Started HTTP redirect server on %s\n", httpAddr)
-        go startServer(httpRedirect)
+        gw.log.Infof("Started HTTP redirect server on %s", httpAddr)
+		go func(){if err := startServer(httpRedirect); err!=nil{ gw.log.Fatal(err)}}()
         
 
         gatewayServer := createServer(gatewayAddr, gatewayHandler, &cert)
-        log.Printf("Started Frontman Gateway with SSL on %s\n", gatewayAddr)
-        startServer(gatewayServer)
+        gw.log.Infof("Started Frontman Gateway with SSL on %s", gatewayAddr)
+        if err := startServer(gatewayServer); err!=nil {
+			return err
+		}
     } else {
         gatewayHandler = gw.router
         gateway := createServer(gatewayAddr, gatewayHandler, nil)
-        log.Printf("Started Frontman Gateway on %s", gatewayAddr)
-        startServer(gateway)
+        gw.log.Infof("Started Frontman Gateway on %s", gatewayAddr)
+		if err := startServer(gateway); err!=nil {
+			return err
+		}
     }
 
     return nil
@@ -152,8 +159,7 @@ func createRedirectServer(addr string, redirectAddr string) *http.Server {
 func loadCert(certFile, keyFile string) (tls.Certificate, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		log.Fatalf("Failed to load certificate: %v", err)
-		return tls.Certificate{}, err
+		return tls.Certificate{}, fmt.Errorf("Failed to load certificate: %w", err)
 	}
 	return cert, nil
 }
@@ -171,14 +177,15 @@ func createServer(addr string, handler http.Handler, cert *tls.Certificate) *htt
 	return server
 }
 
-func startServer(server *http.Server) {
+func startServer(server *http.Server) error {
 	if server.TLSConfig != nil {
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			log.Fatalf("Failed to start server with TLS: %v", err)
+			return fmt.Errorf("Failed to start server with TLS: %w", err)
 		}
 	} else {
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatalf("Failed to start server without TLS: %v", err)
+			return fmt.Errorf("Failed to start server without TLS: %w", err)
 		}
 	}
+	return nil
 }
