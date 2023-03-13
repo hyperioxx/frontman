@@ -179,7 +179,7 @@ Replace /path/to/config.yml with the actual path to your configuration file. Thi
 
 Frontman does not provide a way to configure backend services via the configuration file. Instead, you can use Frontman's API to add, update, or remove backend services dynamically. The API allows you to manage backend services in real-time without having to restart Frontman.
 
-To add a backend service, send a POST request to /api/backend-services with the backend service configuration in the request body. To update a backend service, send a PUT request to /api/backend-services/{name} with the updated backend service configuration in the request body. To remove a backend service, send a DELETE request to /api/backend-services/{name}.
+To add a backend service, send a POST request to /api/services with the backend service configuration in the request body. To update a backend service, send a PUT request to /api/services/{name} with the updated backend service configuration in the request body. To remove a backend service, send a DELETE request to /api/services/{name}.
 
 Once backend services have been defined and stored in the service registry, Frontman can be configured to use that service registry by specifying the appropriate service type and configuration parameters in the global config file.
 
@@ -194,7 +194,6 @@ This command starts a new container, maps port 8080 on the host to port 8080 in 
 ## Managing Backend Services
 Frontman uses various storage systems to manage backend service configurations. Backend services are represented as JSON objects and stored in a data storage system. Here's an example of a backend service configuration:
 
-**Note:** *The loadBalancerPolicy configuration option is currently not active, but the option exists for future implementation of load balancing policies.*
 
 ```json
 {
@@ -219,6 +218,21 @@ Frontman uses various storage systems to manage backend service configurations. 
   }
 }
 ```
+Supported Load Balancer types:
+- Round-robin
+  ```json
+    "loadBalancerPolicy": { 
+    "type": "round_robin"
+    }
+  ```
+- Weighted Round-robin
+  ```json
+  "loadBalancerPolicy": { 
+    "type": "weighted_round_robin",
+    "options": {
+      "weights": [1, 2, 3]
+    }
+  ```
 
 You can add, update, and remove backend services using the following REST endpoints:
 
