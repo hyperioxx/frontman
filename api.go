@@ -65,6 +65,7 @@ func addServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 
 func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		name := mux.Vars(r)["name"]
 		// Parse the request body as a BackendService object
 		var service service.BackendService
 		err := json.NewDecoder(r.Body).Decode(&service)
@@ -72,6 +73,8 @@ func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		service.Name = name
 
 		err = validateService(&service)
 		if err != nil {
@@ -87,6 +90,7 @@ func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 		}
 
 		// Write a response to the HTTP client indicating that the service was updated successfully
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(service)
 	}
@@ -110,6 +114,7 @@ func removeServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(Response{
 			Message: "Removed service " + name,
