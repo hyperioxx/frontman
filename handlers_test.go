@@ -1,6 +1,7 @@
 package frontman
 
 import (
+	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -183,7 +184,12 @@ func TestGatewayHandler(t *testing.T) {
 			MaxIdleTime:     time.Duration(tc.maxIdleTime),
 			Timeout:         time.Duration(tc.timeout),
 			UpstreamTargets: tc.upstreamTargets,
+			LoadBalancerPolicy: service.LoadBalancerPolicy{
+				Type: loadbalancer.RoundRobin,
+			},
 		}
+
+		bs.Init()
 
 		clients := make(map[string]*http.Client)
 

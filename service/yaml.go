@@ -29,8 +29,10 @@ func NewYAMLServiceRegistry(filename string) (*YAMLServiceRegistry, error) {
 // AddService adds a new backend service to the registry
 func (r *YAMLServiceRegistry) AddService(service *BackendService) error {
 	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	r.services = append(r.services, service)
-	r.mutex.Unlock()
+
 	return r.writeToFile(r.filename)
 }
 
@@ -96,7 +98,7 @@ func (r *YAMLServiceRegistry) ReadFromFile(filename string) error {
 		return err
 	}
 	for _, service := range services {
-		service.SetTokenValidator()
+		service.Init()
 	}
 	r.services = services
 	return nil
@@ -105,8 +107,6 @@ func (r *YAMLServiceRegistry) ReadFromFile(filename string) error {
 
 // WriteToFile writes the current registry data to a YAML file
 func (r *YAMLServiceRegistry) writeToFile(filename string) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
 	data, err := yaml.Marshal(r.services)
 	if err != nil {
 		return err

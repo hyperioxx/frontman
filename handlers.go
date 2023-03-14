@@ -239,7 +239,6 @@ func findBackendService(root *Route, r *http.Request) *service.BackendService {
 func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client) http.HandlerFunc {
 	// Create a map to store HTTP clients for each backend service
 	var clientLock sync.Mutex
-	var currentTargetIndex int
 
 	// Start a goroutine to refresh HTTP connections to each backend service
 	go refreshConnections(bs, clients, &clientLock)
@@ -264,11 +263,8 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 			return
 		}
 
-		// Get the target index to use for this request
-		targetIndex := getNextTargetIndex(backendService, currentTargetIndex)
-
 		// Get the upstream target URL for this request
-		upstreamTarget := backendService.UpstreamTargets[targetIndex]
+		upstreamTarget := backendService.GetLoadBalancer().ChooseTarget(backendService.UpstreamTargets)
 
 		var urlPath string
 		if backendService.StripPath {
