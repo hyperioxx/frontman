@@ -41,4 +41,27 @@ func TestLoadBalancer(t *testing.T) {
 			t.Errorf("expected: %s, got: %s", targets[1], target)
 		}
 	}
+
+	// Least Connections
+	lb = NewLeastConnLoadBalancer(targets)
+
+	target = lb.ChooseTarget(targets)
+	target2 := lb.ChooseTarget(targets)
+
+	lb.Done(target2)
+
+	target3 := lb.ChooseTarget(targets)
+
+	if target2 != target3 {
+		t.Errorf("expected: %s, got: %s", target2, target3)
+	}
+
+	lb.Done(target)
+	target4 := lb.ChooseTarget(targets)
+
+	if target != target4 {
+		t.Errorf("expected: %s, got: %s", target, target4)
+	}
+
+	lb.Done(target4)
 }
