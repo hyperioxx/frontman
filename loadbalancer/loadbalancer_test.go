@@ -64,4 +64,5 @@ func TestLoadBalancer(t *testing.T) {
 	}
 
 	lb.Done(target4)
+	lb.Done(target3)
 }
