@@ -222,7 +222,7 @@ Supported Load Balancer types:
 - Round-robin
   ```json
     "loadBalancerPolicy": { 
-    "type": "round_robin"
+      "type": "round_robin"
     }
   ```
 - Weighted Round-robin
@@ -231,6 +231,13 @@ Supported Load Balancer types:
     "type": "weighted_round_robin",
     "options": {
       "weights": [1, 2, 3]
+    }
+  ```
+
+- Least Connection
+  ```json
+    "loadBalancerPolicy": { 
+      "type": "least_conn"
     }
   ```
 
