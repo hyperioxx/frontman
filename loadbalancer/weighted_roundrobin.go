@@ -30,3 +30,5 @@ func (p *WeightedRoundRobinPolicy) ChooseTarget(targets []string) string {
 
 	return targets[curr]
 }
+
+func (p *WeightedRoundRobinPolicy) Done(_ string) {}

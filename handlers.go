@@ -328,6 +328,8 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 			return
 		}
 
+		backendService.GetLoadBalancer().Done(upstreamTarget)
+
 		defer resp.Body.Close()
 
 		for _, plugin := range plugs {

@@ -182,6 +182,7 @@ func validateLoadBalancerPolicy(s *service.BackendService) error {
 				return fmt.Errorf("weightes must be greater than zero")
 			}
 		}
+	case loadbalancer.LeastConnection:
 	default:
 		return fmt.Errorf("unknown load-balancer policy: %s", s.LoadBalancerPolicy.Type)
 	}
