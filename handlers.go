@@ -265,7 +265,6 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 
 		// Get the upstream target URL for this request
 		upstreamTarget := backendService.GetLoadBalancer().ChooseTarget(backendService.UpstreamTargets)
-
 		var urlPath string
 		if backendService.StripPath {
 			urlPath = strings.TrimPrefix(r.URL.Path, backendService.Path)
@@ -289,17 +288,20 @@ func gatewayHandler(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, 
 		if backendService.AuthConfig != nil {
 			tokenValidator := backendService.GetTokenValidator()
 			// Backend service has auth config specified
-			claims, err := tokenValidator.ValidateToken(headers.Get("Authorization"))
+			claims, err := tokenValidator.ValidateToken(r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
-			data, err := json.Marshal(claims)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
+
+			if claims != nil {
+				data, err := json.Marshal(claims)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				headers.Add(backendService.GetUserDataHeader(), string(data))
 			}
-			headers.Add(backendService.GetUserDataHeader(), string(data))
 
 		}
 		// Remove the X-Forwarded-For header to prevent spoofing

@@ -1,19 +1,19 @@
-package frontman
+package auth
 
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"testing"
-	"time"
-
-	"github.com/Frontman-Labs/frontman/auth"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
+	"net/http"
+	"testing"
+	"time"
 )
 
-func TestValidateToken(t *testing.T) {
-	validator := auth.JWTValidator{
+// TestGetServicesHandler tests the getServicesHandler function
+func TestValidateJWTToken(t *testing.T) {
+	validator := JWTValidator{
 		JWKS: jwk.NewSet(),
 	}
 	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -41,7 +41,11 @@ func TestValidateToken(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to generate signed serialized: %s\n", err)
 	}
-	result, err := validator.ValidateToken(string(signed))
+	headers := make(http.Header)
+	headers.Add("Authorization", string(signed))
+	result, err := validator.ValidateToken(&http.Request{
+		Header: headers,
+	})
 	if err != nil {
 		t.Errorf("Failed to validate signed token: %s", err)
 	}
@@ -50,8 +54,8 @@ func TestValidateToken(t *testing.T) {
 	}
 }
 
-func TestValidateTokenInvalidSignature(t *testing.T) {
-	validator := auth.JWTValidator{
+func TestValidateJWTTokenInvalidSignature(t *testing.T) {
+	validator := JWTValidator{
 		JWKS: jwk.NewSet(),
 	}
 	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -83,14 +87,18 @@ func TestValidateTokenInvalidSignature(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to generate signed serialized: %s\n", err)
 	}
-	_, err = validator.ValidateToken(string(signed))
+	headers := make(http.Header)
+	headers.Add("Authorization", string(signed))
+	_, err = validator.ValidateToken(&http.Request{
+		Header: headers,
+	})
 	if err == nil {
 		t.Errorf("Failed to detect invalid key")
 	}
 }
 
-func TestValidateExpiredToken(t *testing.T) {
-	validator := auth.JWTValidator{
+func TestValidateJWTExpiredToken(t *testing.T) {
+	validator := JWTValidator{
 		JWKS: jwk.NewSet(),
 	}
 	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -124,9 +132,13 @@ func TestValidateExpiredToken(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to generate signed serialized: %s\n", err)
 	}
-	_, err = validator.ValidateToken(string(signed))
+	headers := make(http.Header)
+	headers.Add("Authorization", string(signed))
+	_, err = validator.ValidateToken(&http.Request{
+		Header: headers,
+	})
 	if err == nil {
-		t.Errorf("Failed to detect invalid key")
+		t.Errorf("Failed to detect invalid key: %s", err)
 	}
 
 	if err.Error() != "\"exp\" not satisfied" {

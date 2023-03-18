@@ -32,11 +32,20 @@ type JWTConfig struct {
 	KeysUrl  string `json:"keysUrl" yaml:"keysUrl"`
 }
 
+type BasicAuthConfig struct {
+	Username        string `json:"username" yaml:"username"`
+	Password        string `json:"password" yaml:"password"`
+	UsernameEnv     string `json:"usernameEnvVariable" yaml:"usernameEnvVariable"`
+	PasswordEnv     string `json:"passwordEnvVariable" yaml:"passwordEnvVariable"`
+	CredentialsFile string `json:"credentialsFile" yaml:"credentialsFile"`
+}
+
 // Auth config
 type AuthConfig struct {
-	AuthType       string     `json:"type" yaml:"type"`
-	UserDataHeader string     `json:"userDataHeader" yaml:"userDataHeader"`
-	JWT            *JWTConfig `json:"jwt" yaml:"jwt"`
+	AuthType        string           `json:"type" yaml:"type"`
+	UserDataHeader  string           `json:"userDataHeader" yaml:"userDataHeader"`
+	JWT             *JWTConfig       `json:"jwt" yaml:"jwt"`
+	BasicAuthConfig *BasicAuthConfig `json:"basic" yaml:"basic"`
 }
 
 // APIConfig holds the API server configuration

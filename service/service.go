@@ -138,6 +138,8 @@ func (bs *BackendService) setLoadBalancer() {
 		bs.loadBalancer = loadbalancer.NewRoundRobinLoadBalancer()
 	case loadbalancer.WeightedRoundRobin:
 		bs.loadBalancer = loadbalancer.NewWRoundRobinLoadBalancer(bs.LoadBalancerPolicy.Options.Weights)
+	default:
+		bs.loadBalancer = loadbalancer.NewRoundRobinLoadBalancer()
 	}
 }
 
