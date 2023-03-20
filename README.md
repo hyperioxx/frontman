@@ -249,6 +249,57 @@ You can add, update, and remove backend services using the following REST endpoi
 - PUT /services/{name} - Updates an existing backend service
 - DELETE /services/{name} - Removes a backend service
 
+## Adding authentication to backend services
+Frontman currently supports two methods of authentication: JWT tokens and Basic Auth. Authentication can be configured for each backend service separately using the `auth` configuration
+option:
+
+- Basic Auth with Username and Password In config:
+```yaml
+  # .. backend config
+  auth:
+    type: "basic"
+    basic:
+      username: "test"
+      password: "test"
+```
+
+- Basic Auth with username and password environment variable:
+```yaml
+  # .. backend config
+  auth:
+    type: "basic"
+    basic:
+      usernameEnvVariable: "API_USERNAME"
+      passwordEnvVariable: "API_PASSWORD"
+```
+
+- Basic Auth with username and password stored in credentials file:
+```yaml
+   # .. backend config
+  auth:
+    type: "basic"
+    basic:
+      credentialsFile: "credentials.yaml"
+```
+
+credentials.yaml:
+```yaml
+username: "filetest"
+password: "filetest"
+```
+
+- JWT Auth:
+```yaml
+  # .. backend config
+  auth:
+    type: "jwt"
+    userDataContextKey: "user" # Header for storing user claims
+    jwt:
+      audience: <audience>
+      issuer: <issuer>
+      keysUrl: <jwks_uri>
+```
+
 ## Frontman Plugins
 
 Frontman allows you to create custom plugins that can be used to extend its functionality. Plugins are implemented using the FrontmanPlugin interface, which consists of three methods:
