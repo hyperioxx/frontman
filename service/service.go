@@ -134,6 +134,8 @@ func (bs *BackendService) GetLoadBalancer() loadbalancer.LoadBalancer {
 
 func (bs *BackendService) setLoadBalancer() {
 	switch bs.LoadBalancerPolicy.Type {
+	case loadbalancer.Random:
+		bs.loadBalancer = loadbalancer.NewRandomLoadBalancer()
 	case loadbalancer.RoundRobin:
 		bs.loadBalancer = loadbalancer.NewRoundRobinLoadBalancer()
 	case loadbalancer.WeightedRoundRobin:
