@@ -291,12 +291,13 @@ password: "filetest"
 - JWT Auth:
 ```yaml
   # .. backend config
-  type: "jwt"
-  userDataContextKey: "user" # Header for storing user claims
-  jwt:
-    audience: <audience>
-    issuer: <issuer>
-    keysUrl: <jwks_uri>
+  auth:
+    type: "jwt"
+    userDataContextKey: "user" # Header for storing user claims
+    jwt:
+      audience: <audience>
+      issuer: <issuer>
+      keysUrl: <jwks_uri>
 ```
 
 ## Frontman Plugins
