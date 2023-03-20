@@ -1,0 +1,14 @@
+- name: test_service
+  scheme: http
+  upstreamTargets:
+    - http://localhost:5000
+    - http://localhost:5001
+    - http://localhost:5002
+  path: /api
+  domain: "127.0.0.1"
+  healthCheck: /health
+  retryAttempts: 3
+  timeout: 10ns
+  maxIdleTime: 0s
+  loadBalancerPolicy:
+    type: random
