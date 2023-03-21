@@ -141,7 +141,9 @@ func (bs *BackendService) setLoadBalancer() {
 	case loadbalancer.WeightedRoundRobin:
 		bs.loadBalancer = loadbalancer.NewWRoundRobinLoadBalancer(bs.LoadBalancerPolicy.Options.Weights)
 	case loadbalancer.LeastConnection:
-		bs.loadBalancer = loadbalancer.NewLeastConnLoadBalancer(bs.UpstreamTargets)
+		bs.loadBalancer = loadbalancer.NewLeastConnLoadBalancer(bs.UpstreamTargets, nil)
+	case loadbalancer.WeightedLeastConnection:
+		bs.loadBalancer = loadbalancer.NewLeastConnLoadBalancer(bs.UpstreamTargets, bs.LoadBalancerPolicy.Options.Weights)
 	default:
 		bs.loadBalancer = loadbalancer.NewRoundRobinLoadBalancer()
 	}

@@ -247,6 +247,15 @@ Supported Load Balancer types:
     }
   ```
 
+- Weighted Least Connection
+  ```json
+    "loadBalancerPolicy": { 
+      "type": "weightd_least_conn"
+      "options": {
+        "weights": [1, 2, 3]
+    }
+  ```
+
 You can add, update, and remove backend services using the following REST endpoints:
 
 - GET /services - Retrieves a list of all backend services
