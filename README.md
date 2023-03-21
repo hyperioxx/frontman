@@ -232,6 +232,7 @@ Supported Load Balancer types:
     "options": {
       "weights": [1, 2, 3]
     }
+  }
   ```
 
 You can add, update, and remove backend services using the following REST endpoints:
