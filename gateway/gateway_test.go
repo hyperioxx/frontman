@@ -222,7 +222,7 @@ func TestGatewayHandler(t *testing.T) {
 		if err != nil {
 			t.Errorf("could not create logger due to: %s",err)
 		}
-		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger)
+		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
 		handler.ServeHTTP(w, req)
 
 		// Check the response status code
@@ -434,7 +434,7 @@ func BenchmarkGatewayHandler(b *testing.B) {
 		if err != nil {
 			b.Errorf("could not create logger due to: %s",err)
 		}
-		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger)
+		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
 
 	for i := 0; i < b.N; i++ {
 		handler.ServeHTTP(w, req)

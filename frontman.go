@@ -5,13 +5,14 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/Frontman-Labs/frontman/config"
 	"github.com/Frontman-Labs/frontman/gateway"
-	"github.com/Frontman-Labs/frontman/ssl"
 	"github.com/Frontman-Labs/frontman/log"
 	"github.com/Frontman-Labs/frontman/plugins"
 	"github.com/Frontman-Labs/frontman/service"
+	"github.com/Frontman-Labs/frontman/ssl"
 	"github.com/gorilla/mux"
 )
 
@@ -64,7 +65,10 @@ func NewFrontman(conf *config.Config, log log.Logger) (*Frontman, error) {
 	}
 
 	// Create new APIGateway instance
-	apiGateway := gateway.NewAPIGateway(backendServices, plug, conf, make(map[string]*http.Client), log)
+	clients := make(map[string]*http.Client)
+	lock := sync.Mutex{}
+	apiGateway := gateway.NewAPIGateway(backendServices, plug, conf, clients, log, &lock)
+	go gateway.RefreshConnections(backendServices, clients, &lock)
 
 	// Create the Frontman instance
 	return &Frontman{
