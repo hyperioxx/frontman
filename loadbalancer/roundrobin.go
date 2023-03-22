@@ -16,3 +16,5 @@ func (p *RoundRobinPolicy) ChooseTarget(targets []string) string {
 	p.currentIndex = (p.currentIndex + 1) % len(targets)
 	return targets[curr]
 }
+
+func (p *RoundRobinPolicy) Done(_ string) {}

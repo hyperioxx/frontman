@@ -171,8 +171,10 @@ func validateService(service *service.BackendService) error {
 
 func validateLoadBalancerPolicy(s *service.BackendService) error {
 	switch s.LoadBalancerPolicy.Type {
+	case loadbalancer.Random:
+	case loadbalancer.LeastConnection:
 	case loadbalancer.RoundRobin:
-	case loadbalancer.WeightedRoundRobin:
+	case loadbalancer.WeightedRoundRobin, loadbalancer.WeightedLeastConnection:
 		if len(s.LoadBalancerPolicy.Options.Weights) != len(s.UpstreamTargets) {
 			return fmt.Errorf("mismatched lengts of weights and targets")
 		}

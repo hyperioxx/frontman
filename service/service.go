@@ -134,10 +134,18 @@ func (bs *BackendService) GetLoadBalancer() loadbalancer.LoadBalancer {
 
 func (bs *BackendService) setLoadBalancer() {
 	switch bs.LoadBalancerPolicy.Type {
+	case loadbalancer.Random:
+		bs.loadBalancer = loadbalancer.NewRandomLoadBalancer()
 	case loadbalancer.RoundRobin:
 		bs.loadBalancer = loadbalancer.NewRoundRobinLoadBalancer()
 	case loadbalancer.WeightedRoundRobin:
 		bs.loadBalancer = loadbalancer.NewWRoundRobinLoadBalancer(bs.LoadBalancerPolicy.Options.Weights)
+	case loadbalancer.LeastConnection:
+		bs.loadBalancer = loadbalancer.NewLeastConnLoadBalancer(bs.UpstreamTargets, nil)
+	case loadbalancer.WeightedLeastConnection:
+		bs.loadBalancer = loadbalancer.NewLeastConnLoadBalancer(bs.UpstreamTargets, bs.LoadBalancerPolicy.Options.Weights)
+	default:
+		bs.loadBalancer = loadbalancer.NewRoundRobinLoadBalancer()
 	}
 }
 

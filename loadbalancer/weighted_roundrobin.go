@@ -2,13 +2,13 @@ package loadbalancer
 
 type WeightedRoundRobinPolicy struct {
 	basePolicy
-	baseWeights   []int
+	weights       []int
 	currentWeight int
 }
 
 func NewWRoundRobinLoadBalancer(weights []int) *WeightedRoundRobinPolicy {
 	return &WeightedRoundRobinPolicy{
-		baseWeights:   weights,
+		weights:       weights,
 		currentWeight: weights[0],
 	}
 }
@@ -20,7 +20,7 @@ func (p *WeightedRoundRobinPolicy) ChooseTarget(targets []string) string {
 	curr := p.currentIndex
 
 	if p.currentWeight == 0 {
-		p.currentWeight = p.baseWeights[p.currentIndex]
+		p.currentWeight = p.weights[p.currentIndex]
 	}
 
 	p.currentWeight--
@@ -30,3 +30,5 @@ func (p *WeightedRoundRobinPolicy) ChooseTarget(targets []string) string {
 
 	return targets[curr]
 }
+
+func (p *WeightedRoundRobinPolicy) Done(_ string) {}

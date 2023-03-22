@@ -219,10 +219,16 @@ Frontman uses various storage systems to manage backend service configurations. 
 }
 ```
 Supported Load Balancer types:
+- Random
+  ```json
+    "loadBalancerPolicy": { 
+      "type": "random"
+    }
+  ```
 - Round-robin
   ```json
     "loadBalancerPolicy": { 
-    "type": "round_robin"
+      "type": "round_robin"
     }
   ```
 - Weighted Round-robin
@@ -235,6 +241,22 @@ Supported Load Balancer types:
   }
   ```
 
+- Least Connection
+  ```json
+    "loadBalancerPolicy": { 
+      "type": "least_conn"
+    }
+  ```
+
+- Weighted Least Connection
+  ```json
+    "loadBalancerPolicy": { 
+      "type": "weightd_least_conn"
+      "options": {
+        "weights": [1, 2, 3]
+    }
+  ```
+
 You can add, update, and remove backend services using the following REST endpoints:
 
 - GET /services - Retrieves a list of all backend services
@@ -242,6 +264,57 @@ You can add, update, and remove backend services using the following REST endpoi
 - POST /services - Adds a new backend service
 - PUT /services/{name} - Updates an existing backend service
 - DELETE /services/{name} - Removes a backend service
+
+## Adding authentication to backend services
+Frontman currently supports two methods of authentication: JWT tokens and Basic Auth. Authentication can be configured for each backend service separately using the `auth` configuration
+option:
+
+- Basic Auth with Username and Password In config:
+```yaml
+  # .. backend config
+  auth:
+    type: "basic"
+    basic:
+      username: "test"
+      password: "test"
+```
+
+- Basic Auth with username and password environment variable:
+```yaml
+  # .. backend config
+  auth:
+    type: "basic"
+    basic:
+      usernameEnvVariable: "API_USERNAME"
+      passwordEnvVariable: "API_PASSWORD"
+```
+
+- Basic Auth with username and password stored in credentials file:
+```yaml
+   # .. backend config
+  auth:
+    type: "basic"
+    basic:
+      credentialsFile: "credentials.yaml"
+```
+
+credentials.yaml:
+```yaml
+username: "filetest"
+password: "filetest"
+```
+
+- JWT Auth:
+```yaml
+  # .. backend config
+  auth:
+    type: "jwt"
+    userDataContextKey: "user" # Header for storing user claims
+    jwt:
+      audience: <audience>
+      issuer: <issuer>
+      keysUrl: <jwks_uri>
+```
 
 ## Frontman Plugins
 
