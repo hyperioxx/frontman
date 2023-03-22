@@ -96,17 +96,6 @@ func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 	}
 }
 
-func getNextTargetIndex(backendService *service.BackendService, currentIndex int) int {
-	numTargets := len(backendService.UpstreamTargets)
-	if numTargets == 0 {
-		return -1
-	}
-	if currentIndex >= numTargets-1 {
-		return 0
-	}
-	return currentIndex + 1
-}
-
 func getClientForBackendService(bs service.BackendService, target string, clients map[string]*http.Client, clientLock *sync.Mutex) (*http.Client, error) {
 	clientLock.Lock()
 	defer clientLock.Unlock()
@@ -228,4 +217,3 @@ func findBackendService(root *Route, r *http.Request) *service.BackendService {
 
 	return nil
 }
-

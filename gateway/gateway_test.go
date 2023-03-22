@@ -220,7 +220,7 @@ func TestGatewayHandler(t *testing.T) {
 
 		logger, err := log.NewZapLogger("info")
 		if err != nil {
-			t.Errorf("could not create logger due to: %s",err)
+			t.Errorf("could not create logger due to: %s", err)
 		}
 		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
 		handler.ServeHTTP(w, req)
@@ -431,10 +431,10 @@ func BenchmarkGatewayHandler(b *testing.B) {
 	}}
 
 	logger, err := log.NewZapLogger("info")
-		if err != nil {
-			b.Errorf("could not create logger due to: %s",err)
-		}
-		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
+	if err != nil {
+		b.Errorf("could not create logger due to: %s", err)
+	}
+	handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
 
 	for i := 0; i < b.N; i++ {
 		handler.ServeHTTP(w, req)
