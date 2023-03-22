@@ -219,6 +219,12 @@ Frontman uses various storage systems to manage backend service configurations. 
 }
 ```
 Supported Load Balancer types:
+- Random
+  ```json
+    "loadBalancerPolicy": { 
+      "type": "random"
+    }
+  ```
 - Round-robin
   ```json
     "loadBalancerPolicy": { 
@@ -238,6 +244,15 @@ Supported Load Balancer types:
   ```json
     "loadBalancerPolicy": { 
       "type": "least_conn"
+    }
+  ```
+
+- Weighted Least Connection
+  ```json
+    "loadBalancerPolicy": { 
+      "type": "weightd_least_conn"
+      "options": {
+        "weights": [1, 2, 3]
     }
   ```
 

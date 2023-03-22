@@ -6,16 +6,26 @@ type targetInfo struct {
 	target        string
 	index         int
 	count         int
+	weight        int
 	insertionTime uint64
 }
 
 type targetsHeap struct {
-	time uint64
-	heap []*targetInfo
+	time     uint64
+	heap     []*targetInfo
+	weighted bool
 }
 
 func (th targetsHeap) Less(i, j int) bool {
 	if th.heap[i].count == th.heap[j].count {
+		if th.weighted {
+			if th.heap[i].weight == th.heap[j].weight {
+				return th.heap[i].insertionTime < th.heap[j].insertionTime
+			}
+
+			return th.heap[i].weight > th.heap[j].weight
+		}
+
 		return th.heap[i].insertionTime < th.heap[j].insertionTime
 	}
 
@@ -53,7 +63,7 @@ type LeastConnPolicy struct {
 	targetsMap map[string]*targetInfo
 }
 
-func NewLeastConnLoadBalancer(targets []string) *LeastConnPolicy {
+func NewLeastConnLoadBalancer(targets []string, weights []int) *LeastConnPolicy {
 	tm := make(map[string]*targetInfo, len(targets))
 	h := targetsHeap{
 		time: 0,
@@ -68,8 +78,13 @@ func NewLeastConnLoadBalancer(targets []string) *LeastConnPolicy {
 			insertionTime: uint64(i),
 		}
 
+		if weights != nil {
+			ti.weight = weights[i]
+		}
+
 		tm[t] = &ti
 		h.heap[i] = &ti
+		h.weighted = weights != nil
 	}
 
 	currTime := h.heap[len(h.heap)-1].insertionTime
