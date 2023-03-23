@@ -238,6 +238,7 @@ Supported Load Balancer types:
     "options": {
       "weights": [1, 2, 3]
     }
+  }
   ```
 
 - Least Connection
