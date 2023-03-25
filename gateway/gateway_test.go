@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"fmt"
 	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"net/http"
 	"net/http/httptest"
@@ -395,6 +396,7 @@ func TestGetClientForBackendService(t *testing.T) {
 
 func BenchmarkGatewayHandler(b *testing.B) {
 	bs := &service.BackendService{
+		Name:            "test",
 		Domain:          "test.com",
 		Path:            "/api",
 		Scheme:          "https",
@@ -404,6 +406,9 @@ func BenchmarkGatewayHandler(b *testing.B) {
 		Timeout:         time.Duration(5) * time.Second,
 		UpstreamTargets: []string{"httpbin.org"},
 	}
+
+	bs.Init()
+
 	reg := service.NewMemoryServiceRegistry()
 	reg.Services["test"] = bs
 
@@ -422,7 +427,8 @@ func BenchmarkGatewayHandler(b *testing.B) {
 	}
 
 	clients := make(map[string]*http.Client)
-	clients[bs.UpstreamTargets[0]] = &http.Client{Transport: &mockHTTPClient{
+	key := fmt.Sprintf("%s_%s", bs.Name, bs.UpstreamTargets[0])
+	clients[key] = &http.Client{Transport: &mockHTTPClient{
 		mockResponse: &http.Response{
 			StatusCode: http.StatusOK,
 			Header:     make(http.Header),

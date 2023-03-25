@@ -2,15 +2,14 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"log"
 	"net/http"
-
+	"sync"
 	"time"
 
 	"github.com/Frontman-Labs/frontman/auth"
 	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"github.com/Frontman-Labs/frontman/oauth"
 )
 
@@ -20,6 +19,11 @@ type ServiceRegistry interface {
 	UpdateService(service *BackendService) error
 	RemoveService(name string) error
 	GetServices() []*BackendService
+}
+
+type baseRegistry struct {
+	services []*BackendService
+	mutex    sync.RWMutex
 }
 
 func NewServiceRegistry(ctx context.Context, serviceType string, config *config.Config) (ServiceRegistry, error) {
@@ -51,8 +55,71 @@ func NewServiceRegistry(ctx context.Context, serviceType string, config *config.
 		}
 		return mongoBackendServices, nil
 	default:
-		return nil, fmt.Errorf("unsupported service type: %s", serviceType)
+		return nil, ErrUnsupportedServiceType{serviceType: serviceType}
 	}
+}
+
+func (r *baseRegistry) getServices() []*BackendService {
+	services := make([]*BackendService, len(r.services))
+	copy(services, r.services)
+	return services
+}
+
+func (r *baseRegistry) addService(service *BackendService, apply func() error) error {
+	old := r.getServices()
+
+	for _, s := range r.services {
+		if s.Name == service.Name {
+			return ErrServiceExists{Name: service.Name}
+		}
+	}
+
+	r.services = append(r.services, service)
+	err := apply()
+	if err != nil {
+		r.services = old
+		return err
+	}
+
+	return nil
+}
+
+func (r *baseRegistry) updateService(service *BackendService, apply func() error) error {
+	old := r.getServices()
+
+	for i, s := range r.services {
+		if s.Name == service.Name {
+			r.services[i] = service
+			err := apply()
+			if err != nil {
+				r.services = old
+				return err
+			}
+
+			return nil
+		}
+	}
+
+	return ErrServiceNotFound{Name: service.Name}
+}
+
+func (r *baseRegistry) removeService(name string, apply func() error) error {
+	old := r.getServices()
+
+	for i, s := range r.services {
+		if s.Name == name {
+			r.services = append(r.services[:i], r.services[i+1:]...)
+			err := apply()
+			if err != nil {
+				r.services = old
+				return err
+			}
+
+			return nil
+		}
+	}
+
+	return ErrServiceNotFound{Name: name}
 }
 
 // BackendService holds the details of a backend service
@@ -70,9 +137,10 @@ type BackendService struct {
 	StripPath          bool               `json:"stripPath,omitempty" yaml:"stripPath,omitempty"`
 	AuthConfig         *config.AuthConfig `json:"auth,omitempty" yaml:"auth,omitempty"`
 	LoadBalancerPolicy LoadBalancerPolicy `json:"loadBalancerPolicy,omitempty" yaml:"loadBalancerPolicy,omitempty"`
-	loadBalancer       loadbalancer.LoadBalancer
-	provider           oauth.OAuthProvider
-	tokenValidator     *auth.TokenValidator
+
+	loadBalancer   loadbalancer.LoadBalancer
+	provider       oauth.OAuthProvider
+	tokenValidator *auth.TokenValidator
 }
 
 type LoadBalancerPolicy struct {

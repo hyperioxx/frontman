@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/Frontman-Labs/frontman/api"
+	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"sync"
 
@@ -13,31 +15,18 @@ import (
 	"github.com/Frontman-Labs/frontman/plugins"
 	"github.com/Frontman-Labs/frontman/service"
 	"github.com/Frontman-Labs/frontman/ssl"
-	"github.com/gorilla/mux"
 )
 
 // Frontman contains the backend services and the router
 type Frontman struct {
 	router          *gateway.APIGateway
-	service         *mux.Router
+	service         *httprouter.Router
 	backendServices service.ServiceRegistry
 	conf            *config.Config
 	log             log.Logger
 }
 
-func NewServicesRouter(backendServices service.ServiceRegistry) *mux.Router {
-	router := mux.NewRouter()
-
-	router.HandleFunc("/api/services", getServicesHandler(backendServices)).Methods("GET")
-	router.HandleFunc("/api/services", addServiceHandler(backendServices)).Methods("POST")
-	router.HandleFunc("/api/services/{name}", removeServiceHandler(backendServices)).Methods("DELETE")
-	router.HandleFunc("/api/services/{name}", updateServiceHandler(backendServices)).Methods("PUT")
-	router.HandleFunc("/api/health", getHealthHandler(backendServices)).Methods("GET")
-
-	return router
-}
-
-// NewGateway creates a new Frontman instance with a Redis client connection factory
+// NewFrontman creates a new Frontman instance with a Redis client connection factory
 func NewFrontman(conf *config.Config, log log.Logger) (*Frontman, error) {
 
 	// Retrieve the Redis client connection from the factory
@@ -49,7 +38,7 @@ func NewFrontman(conf *config.Config, log log.Logger) (*Frontman, error) {
 		return nil, err
 	}
 
-	servicesRouter := NewServicesRouter(backendServices)
+	servicesRouter := api.NewServicesRouter(backendServices)
 
 	// Load plugins
 	var plug []plugins.FrontmanPlugin

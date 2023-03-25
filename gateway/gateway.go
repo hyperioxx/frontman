@@ -15,13 +15,12 @@ import (
 )
 
 type APIGateway struct {
-	bs                 service.ServiceRegistry
-	plugs              []plugins.FrontmanPlugin
-	conf               *config.Config
-	clients            map[string]*http.Client
-	clientLock         *sync.Mutex
-	currentTargetIndex int
-	log                log.Logger
+	bs         service.ServiceRegistry
+	plugs      []plugins.FrontmanPlugin
+	conf       *config.Config
+	clients    map[string]*http.Client
+	clientLock *sync.Mutex
+	log        log.Logger
 }
 
 func NewAPIGateway(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client, logger log.Logger, lock *sync.Mutex) *APIGateway {
