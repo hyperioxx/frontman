@@ -1,25 +1,21 @@
 package service
 
 import (
-	"errors"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
-	"sync"
-
-	"gopkg.in/yaml.v3"
 )
 
 // YAMLServiceRegistry implements the ServiceRegistry interface
 type YAMLServiceRegistry struct {
+	baseRegistry
 	filename string
-	services []*BackendService
-	mutex    sync.RWMutex
 }
 
 // NewYAMLServiceRegistry creates a new YAMLServiceRegistry instance from a file
 func NewYAMLServiceRegistry(filename string) (*YAMLServiceRegistry, error) {
 	reg := &YAMLServiceRegistry{filename: filename}
-	err := reg.ReadFromFile(filename)
+	err := reg.readFromFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -31,48 +27,47 @@ func (r *YAMLServiceRegistry) AddService(service *BackendService) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	r.services = append(r.services, service)
+	err := r.addService(service, func() error {
+		return r.writeToFile(r.filename)
+	})
 
-	return r.writeToFile(r.filename)
+	return err
 }
 
 // UpdateService updates an existing backend service in the registry
 func (r *YAMLServiceRegistry) UpdateService(service *BackendService) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	for i, s := range r.services {
-		if s.Name == service.Name {
-			r.services[i] = service
-			return r.writeToFile(r.filename)
-		}
-	}
-	return errors.New("service not found")
+
+	err := r.updateService(service, func() error {
+		return r.writeToFile(r.filename)
+	})
+
+	return err
 }
 
 // RemoveService removes a backend service from the registry
 func (r *YAMLServiceRegistry) RemoveService(name string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	for i, s := range r.services {
-		if s.Name == name {
-			r.services = append(r.services[:i], r.services[i+1:]...)
-			return r.writeToFile(r.filename)
-		}
-	}
-	return errors.New("service not found")
+
+	err := r.removeService(name, func() error {
+		return r.writeToFile(r.filename)
+	})
+
+	return err
 }
 
 // GetServices returns a copy of the current list of backend services
 func (r *YAMLServiceRegistry) GetServices() []*BackendService {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	services := make([]*BackendService, len(r.services))
-	copy(services, r.services)
-	return services
+
+	return r.baseRegistry.getServices()
 }
 
-// ReadFromFile reads service data from a YAML file and updates the registry
-func (r *YAMLServiceRegistry) ReadFromFile(filename string) error {
+// readFromFile reads service data from a YAML file and updates the registry
+func (r *YAMLServiceRegistry) readFromFile(filename string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -100,7 +95,9 @@ func (r *YAMLServiceRegistry) ReadFromFile(filename string) error {
 	for _, service := range services {
 		service.Init()
 	}
+
 	r.services = services
+
 	return nil
 
 }

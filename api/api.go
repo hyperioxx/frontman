@@ -1,4 +1,4 @@
-package frontman
+package api
 
 import (
 	"encoding/json"
@@ -8,36 +8,50 @@ import (
 	"net/url"
 
 	"github.com/Frontman-Labs/frontman/service"
-	"github.com/gorilla/mux"
+	"github.com/julienschmidt/httprouter"
 )
 
-func getServicesHandler(bs service.ServiceRegistry) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func NewServicesRouter(backendServices service.ServiceRegistry) *httprouter.Router {
+	router := httprouter.New()
+
+	router.GET("/api/services", getServicesHandler(backendServices))
+	router.POST("/api/services", addServiceHandler(backendServices))
+	router.DELETE("/api/services/:name", removeServiceHandler(backendServices))
+	router.PUT("/api/services/:name", updateServiceHandler(backendServices))
+	router.GET("/api/health", getHealthHandler(backendServices))
+
+	return router
+}
+
+func getServicesHandler(bs service.ServiceRegistry) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		services := bs.GetServices()
 		jsonData, err := json.Marshal(services)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
+
+		prepareHeaders(w, http.StatusOK)
 		w.Write(jsonData)
 	}
 }
 
-func getHealthHandler(bs service.ServiceRegistry) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func getHealthHandler(bs service.ServiceRegistry) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		services := bs.GetServices()
 		healthStatus := make(map[string]bool)
 		for _, service := range services {
 			healthStatus[service.Name] = service.GetHealthCheck()
 		}
-		w.Header().Set("Content-Type", "application/json")
+
+		prepareHeaders(w, http.StatusOK)
 		json.NewEncoder(w).Encode(healthStatus)
 	}
 }
 
-func addServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func addServiceHandler(bs service.ServiceRegistry) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		// Parse the request body as a BackendService object
 		var service service.BackendService
 		err := json.NewDecoder(r.Body).Decode(&service)
@@ -54,18 +68,21 @@ func addServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 		}
 
 		// Add the service to the list of backend services
-		bs.AddService(&service)
+		err = bs.AddService(&service)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		// Write a response to the HTTP client indicating that the service was added successfully
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+		prepareHeaders(w, http.StatusCreated)
 		json.NewEncoder(w).Encode(service)
 	}
 }
 
-func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		name := mux.Vars(r)["name"]
+func updateServiceHandler(bs service.ServiceRegistry) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+		name := params.ByName("name")
 		// Parse the request body as a BackendService object
 		var service service.BackendService
 		err := json.NewDecoder(r.Body).Decode(&service)
@@ -90,35 +107,28 @@ func updateServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
 		}
 
 		// Write a response to the HTTP client indicating that the service was updated successfully
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		prepareHeaders(w, http.StatusOK)
 		json.NewEncoder(w).Encode(service)
 	}
 }
 
-func removeServiceHandler(bs service.ServiceRegistry) http.HandlerFunc {
+func removeServiceHandler(bs service.ServiceRegistry) httprouter.Handle {
 	type Response struct {
 		Message string `json:"message,omitempty"`
 		Error   string `json:"error,omitempty"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		name := mux.Vars(r)["name"]
+	return func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+		name := params.ByName("name")
 		err := bs.RemoveService(name)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(Response{
-				Message: "",
-				Error:   "missing service name",
-			})
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		prepareHeaders(w, http.StatusOK)
 		json.NewEncoder(w).Encode(Response{
 			Message: "Removed service " + name,
-			Error:   "",
 		})
 	}
 }
@@ -189,4 +199,9 @@ func validateLoadBalancerPolicy(s *service.BackendService) error {
 	}
 
 	return nil
+}
+
+func prepareHeaders(w http.ResponseWriter, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
 }

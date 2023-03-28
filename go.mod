@@ -4,9 +4,10 @@ go 1.20
 
 require (
 	github.com/go-redis/redis/v9 v9.0.0-rc.2
-	github.com/gorilla/mux v1.8.0
+	github.com/julienschmidt/httprouter v1.3.0
 	github.com/lestrrat-go/jwx/v2 v2.0.8
 	go.mongodb.org/mongo-driver v1.11.2
+	go.uber.org/zap v1.24.0
 	golang.org/x/oauth2 v0.5.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -32,7 +33,6 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect

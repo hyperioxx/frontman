@@ -1,15 +1,16 @@
-package frontman
+package api
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"github.com/Frontman-Labs/frontman/service"
+	"github.com/julienschmidt/httprouter"
 )
 
 // TestGetServicesHandler tests the getServicesHandler function
@@ -27,8 +28,8 @@ func TestGetServicesHandler(t *testing.T) {
 	backendServices := service.NewMemoryServiceRegistry()
 
 	// Call the handler function
-	handler := http.HandlerFunc(getServicesHandler(backendServices))
-	handler.ServeHTTP(rr, req)
+	handler := getServicesHandler(backendServices)
+	handler(rr, req, nil)
 
 	// Check the status code
 	if status := rr.Code; status != http.StatusOK {
@@ -82,8 +83,8 @@ func TestAddServiceHandler(t *testing.T) {
 	backendServices := service.NewMemoryServiceRegistry()
 
 	// Call the handler function
-	handler := http.HandlerFunc(addServiceHandler(backendServices))
-	handler.ServeHTTP(rr, req)
+	handler := addServiceHandler(backendServices)
+	handler(rr, req, nil)
 
 	// Check the status code
 	if status := rr.Code; status != http.StatusCreated {
@@ -119,16 +120,16 @@ func TestRemoveServiceHandler(t *testing.T) {
 	backendServices := service.NewMemoryServiceRegistry()
 
 	// Call the handler function
-	handler := http.HandlerFunc(removeServiceHandler(backendServices))
-	handler.ServeHTTP(rr, req)
+	handler := removeServiceHandler(backendServices)
+	handler(rr, req, httprouter.Params{{"name", "test"}})
 
 	// Check the status code
-	if status := rr.Code; status != http.StatusBadRequest {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+	if status := rr.Code; status != http.StatusInternalServerError {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusInternalServerError)
 	}
 
 	// Check the response body
-	expected := "{\"error\":\"missing service name\"}\n"
+	expected := "service with name 'test' not found\n"
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}

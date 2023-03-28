@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -49,11 +50,12 @@ func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 
 			// Remove clients that are no longer needed
 			clientLock.Lock()
-			for url := range clients {
+			for k := range clients {
 				found := false
 				for _, s := range services {
 					for _, t := range s.UpstreamTargets {
-						if t == url {
+						key := fmt.Sprintf("%s_%s", s.Name, t)
+						if key == k {
 							found = true
 							break
 						}
@@ -63,7 +65,7 @@ func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 					}
 				}
 				if !found {
-					delete(clients, url)
+					delete(clients, k)
 				}
 			}
 			clientLock.Unlock()
@@ -72,7 +74,8 @@ func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 			for _, s := range services {
 				for _, t := range s.UpstreamTargets {
 					clientLock.Lock()
-					_, ok := clients[t]
+					key := fmt.Sprintf("%s_%s", s.Name, t)
+					_, ok := clients[key]
 					if !ok {
 						transport := &http.Transport{
 							MaxIdleConns:        s.MaxIdleConns,
@@ -82,11 +85,11 @@ func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 						client := &http.Client{
 							Transport: transport,
 						}
-						clients[t] = client
+						clients[key] = client
 					} else {
-						clients[t].Transport.(*http.Transport).MaxIdleConns = s.MaxIdleConns
-						clients[t].Transport.(*http.Transport).IdleConnTimeout = s.MaxIdleTime * time.Second
-						clients[t].Transport.(*http.Transport).TLSHandshakeTimeout = s.Timeout * time.Second
+						clients[key].Transport.(*http.Transport).MaxIdleConns = s.MaxIdleConns
+						clients[key].Transport.(*http.Transport).IdleConnTimeout = s.MaxIdleTime * time.Second
+						clients[key].Transport.(*http.Transport).TLSHandshakeTimeout = s.Timeout * time.Second
 					}
 					clientLock.Unlock()
 				}
@@ -118,7 +121,8 @@ func getClientForBackendService(bs service.BackendService, target string, client
 	}
 
 	// Add the client to the map of clients
-	clients[target] = client
+	key := fmt.Sprintf("%s_%s", bs.Name, target)
+	clients[key] = client
 
 	return client, nil
 }

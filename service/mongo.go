@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,63 +23,94 @@ func NewMongoClient(ctx context.Context, uri string) (*mongo.Client, error) {
 }
 
 type mongoServiceRegistry struct {
+	baseRegistry
 	client        *mongo.Client
 	database      *mongo.Database
 	collection    *mongo.Collection
-	services      map[string]*BackendService
 	ctx           context.Context
 	updateTimeout time.Duration
 }
 
 func NewMongoServiceRegistry(ctx context.Context, client *mongo.Client, database string, collection string) (ServiceRegistry, error) {
-	db := client.Database(database)
-	col := db.Collection(collection)
-	return &mongoServiceRegistry{
-		client:     client,
-		database:   db,
-		collection: col,
-		ctx:        ctx,
-	}, nil
+
+	r := &mongoServiceRegistry{
+		client:   client,
+		database: client.Database(database),
+		ctx:      ctx,
+	}
+
+	r.collection = r.database.Collection(collection)
+
+	err := r.loadServices()
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 func (r *mongoServiceRegistry) AddService(service *BackendService) error {
-	_, err := r.collection.InsertOne(r.ctx, service)
-	return err
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	return r.addService(service, func() error {
+		_, err := r.collection.InsertOne(r.ctx, service)
+		return err
+	})
 }
 
 func (r *mongoServiceRegistry) UpdateService(service *BackendService) error {
-	_, err := r.collection.UpdateOne(r.ctx, bson.M{"name": service.Name}, bson.M{"$set": service})
-	return err
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	return r.updateService(service, func() error {
+		_, err := r.collection.UpdateOne(r.ctx, bson.M{"name": service.Name}, bson.M{"$set": service})
+		return err
+
+	})
 }
 
 func (r *mongoServiceRegistry) RemoveService(name string) error {
-	_, err := r.collection.DeleteOne(r.ctx, bson.M{"name": name})
-	return err
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	return r.removeService(name, func() error {
+		_, err := r.collection.DeleteOne(r.ctx, bson.M{"name": name})
+		return err
+	})
 }
 
 func (r *mongoServiceRegistry) GetServices() []*BackendService {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	return r.getServices()
+}
+
+func (r *mongoServiceRegistry) loadServices() error {
 	var services []*BackendService
 
 	cursor, err := r.collection.Find(r.ctx, bson.M{})
 	if err != nil {
-		fmt.Printf("error finding services: %v\n", err)
-		return nil
+		return err
 	}
+
 	defer cursor.Close(r.ctx)
+
 	for cursor.Next(r.ctx) {
 		var service BackendService
-		err := cursor.Decode(&service)
+		err = cursor.Decode(&service)
 		if err != nil {
-			log.Printf("error decoding service: %v\n", err)
-			return nil
+			return err
 		}
+
 		service.Init()
-		services = append(services, &service)
+		r.services = append(services, &service)
 	}
-	if err := cursor.Err(); err != nil {
-		log.Printf("error iterating over cursor: %v\n", err)
-		return nil
+
+	if err = cursor.Err(); err != nil {
+		return err
 	}
-	log.Printf("found %d services\n", len(services))
-	return services
+
+	return nil
 }

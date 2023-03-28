@@ -1,59 +1,15 @@
 package service
 
 import (
-	"context"
-	"fmt"
-	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"log"
 	"net/http"
-
 	"time"
 
 	"github.com/Frontman-Labs/frontman/auth"
 	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"github.com/Frontman-Labs/frontman/oauth"
 )
-
-// ServiceRegistry holds the methods to interact with the backend service registry
-type ServiceRegistry interface {
-	AddService(service *BackendService) error
-	UpdateService(service *BackendService) error
-	RemoveService(name string) error
-	GetServices() []*BackendService
-}
-
-func NewServiceRegistry(ctx context.Context, serviceType string, config *config.Config) (ServiceRegistry, error) {
-	switch serviceType {
-	case "redis":
-		redisClient, err := NewRedisClient(ctx, config.GlobalConfig.RedisURI)
-		if err != nil {
-			return nil, err
-		}
-		redisBackendServices, err := NewRedisRegistry(ctx, redisClient, config.GlobalConfig.RedisNamespace)
-		if err != nil {
-			return nil, err
-		}
-		return redisBackendServices, nil
-	case "yaml":
-		yamlBackendServices, err := NewYAMLServiceRegistry(config.GlobalConfig.ServicesFile)
-		if err != nil {
-			return nil, err
-		}
-		return yamlBackendServices, nil
-	case "mongo":
-		mongoClient, err := NewMongoClient(ctx, config.GlobalConfig.MongoURI)
-		if err != nil {
-			return nil, err
-		}
-		mongoBackendServices, err := NewMongoServiceRegistry(ctx, mongoClient, config.GlobalConfig.MongoDatabaseName, config.GlobalConfig.MongoCollectionName)
-		if err != nil {
-			return nil, err
-		}
-		return mongoBackendServices, nil
-	default:
-		return nil, fmt.Errorf("unsupported service type: %s", serviceType)
-	}
-}
 
 // BackendService holds the details of a backend service
 type BackendService struct {
@@ -70,9 +26,10 @@ type BackendService struct {
 	StripPath          bool               `json:"stripPath,omitempty" yaml:"stripPath,omitempty"`
 	AuthConfig         *config.AuthConfig `json:"auth,omitempty" yaml:"auth,omitempty"`
 	LoadBalancerPolicy LoadBalancerPolicy `json:"loadBalancerPolicy,omitempty" yaml:"loadBalancerPolicy,omitempty"`
-	loadBalancer       loadbalancer.LoadBalancer
-	provider           oauth.OAuthProvider
-	tokenValidator     *auth.TokenValidator
+
+	loadBalancer   loadbalancer.LoadBalancer
+	provider       oauth.OAuthProvider
+	tokenValidator *auth.TokenValidator
 }
 
 type LoadBalancerPolicy struct {
