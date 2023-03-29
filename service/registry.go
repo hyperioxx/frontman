@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/Frontman-Labs/frontman/config"
+	"github.com/Frontman-Labs/frontman/gateway"
 	"sync"
 )
 
@@ -15,8 +16,9 @@ type ServiceRegistry interface {
 }
 
 type baseRegistry struct {
-	services []*BackendService
-	mutex    sync.RWMutex
+	mutex       sync.RWMutex
+	services    []*BackendService
+	routingTrie *gateway.RoutingTrie
 }
 
 func NewServiceRegistry(ctx context.Context, serviceType string, config *config.Config) (ServiceRegistry, error) {

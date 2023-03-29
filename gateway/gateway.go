@@ -15,27 +15,28 @@ import (
 )
 
 type APIGateway struct {
-	bs         service.ServiceRegistry
-	plugs      []plugins.FrontmanPlugin
-	conf       *config.Config
-	clients    map[string]*http.Client
-	clientLock *sync.Mutex
-	log        log.Logger
+	bs          service.ServiceRegistry
+	plugs       []plugins.FrontmanPlugin
+	conf        *config.Config
+	clients     map[string]*http.Client
+	routingTrie *RoutingTrie
+	clientLock  *sync.Mutex
+	log         log.Logger
 }
 
-func NewAPIGateway(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client, logger log.Logger, lock *sync.Mutex) *APIGateway {
+func NewAPIGateway(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client, trie *RoutingTrie, logger log.Logger, lock *sync.Mutex) *APIGateway {
 	return &APIGateway{
-		bs:         bs,
-		plugs:      plugs,
-		conf:       conf,
-		clients:    clients,
-		clientLock: lock,
-		log:        logger,
+		bs:          bs,
+		plugs:       plugs,
+		conf:        conf,
+		clients:     clients,
+		clientLock:  lock,
+		routingTrie: trie,
+		log:         logger,
 	}
 }
 
 func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	root := buildRoutes(g.bs.GetServices())
 	for _, plugin := range g.plugs {
 		if err := plugin.PreRequest(req, g.bs, g.conf); err != nil {
 			g.log.Errorf("Plugin error: %v", err)
@@ -45,7 +46,7 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Find the backend service that matches the request
-	backendService := findBackendService(root, req)
+	backendService := findBackendService(g.routingTrie, req)
 
 	// If the backend service was not found, return a 404 error
 	if backendService == nil {
@@ -55,7 +56,9 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Get the upstream target URL for this request
 	upstreamTarget := backendService.GetLoadBalancer().ChooseTarget(backendService.UpstreamTargets)
+
 	var urlPath string
+
 	if backendService.StripPath {
 		urlPath = strings.TrimPrefix(req.URL.Path, backendService.Path)
 	} else {
@@ -63,7 +66,6 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Create a new target URL with the service path and scheme
-
 	targetURL, err := url.Parse(upstreamTarget + urlPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -72,9 +74,11 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Get or create a new client for this backend service
 	client, err := getClientForBackendService(*backendService, backendService.Name, g.clients, g.clientLock)
-	headers := make(http.Header)
+
 	// Copy the headers from the original request
+	headers := make(http.Header)
 	copyHeaders(headers, req.Header)
+
 	if backendService.AuthConfig != nil {
 		tokenValidator := backendService.GetTokenValidator()
 		// Backend service has auth config specified

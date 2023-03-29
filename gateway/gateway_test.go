@@ -313,7 +313,7 @@ func TestFindBackendService(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			root := buildRoutes(tc.services)
+			root := BuildRoutes(tc.services)
 			result := findBackendService(root, tc.request)
 			if !reflect.DeepEqual(result, tc.expectedOutput) {
 				t.Errorf("Unexpected result: got %#v, want %#v", result, tc.expectedOutput)

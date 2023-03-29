@@ -28,22 +28,24 @@ type Frontman struct {
 
 // NewFrontman creates a new Frontman instance with a Redis client connection factory
 func NewFrontman(conf *config.Config, log log.Logger) (*Frontman, error) {
-
-	// Retrieve the Redis client connection from the factory
 	ctx := context.Background()
 
-	// Create a new BackendServices instance
-	backendServices, err := service.NewServiceRegistry(ctx, conf.GlobalConfig.ServiceType, conf)
+	// Create a new serviceRegistry instance
+	serviceRegistry, err := service.NewServiceRegistry(ctx, conf.GlobalConfig.ServiceType, conf)
 	if err != nil {
 		return nil, err
 	}
 
-	servicesRouter := api.NewServicesRouter(backendServices)
+	// Initialise routing trie
+	var routingTrie gateway.RoutingTrie
+
+	routingTrie.BuildRoutes(serviceRegistry.GetServices())
+
+	// Create management API router
+	servicesRouter := api.NewServicesRouter(serviceRegistry)
 
 	// Load plugins
 	var plug []plugins.FrontmanPlugin
-
-	// Create new APIGateway instance
 
 	if conf.PluginConfig.Enabled {
 		plug, err = plugins.LoadPlugins(conf.PluginConfig.Order)
@@ -56,14 +58,15 @@ func NewFrontman(conf *config.Config, log log.Logger) (*Frontman, error) {
 	// Create new APIGateway instance
 	clients := make(map[string]*http.Client)
 	lock := sync.Mutex{}
-	apiGateway := gateway.NewAPIGateway(backendServices, plug, conf, clients, log, &lock)
-	go gateway.RefreshConnections(backendServices, clients, &lock)
+	apiGateway := gateway.NewAPIGateway(serviceRegistry, plug, conf, clients, &routingTrie, log, &lock)
+
+	go gateway.RefreshConnections(serviceRegistry, clients, &lock)
 
 	// Create the Frontman instance
 	return &Frontman{
 		router:          apiGateway,
 		service:         servicesRouter,
-		backendServices: backendServices,
+		backendServices: serviceRegistry,
 		conf:            conf,
 		log:             log,
 	}, nil
