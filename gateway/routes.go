@@ -1,17 +1,14 @@
 package gateway
 
 import (
-	"fmt"
+	"github.com/Frontman-Labs/frontman/service"
 	"net/http"
 	"strings"
 	"sync"
-	"time"
-
-	"github.com/Frontman-Labs/frontman/service"
 )
 
 type RoutingTrie struct {
-	mutex sync.RWMutex
+	Mutex *sync.RWMutex
 	root  *Route
 }
 
@@ -23,9 +20,6 @@ type Route struct {
 }
 
 func (rt *RoutingTrie) BuildRoutes(services []*service.BackendService) {
-	rt.mutex.Lock()
-	defer rt.mutex.Unlock()
-
 	root := &Route{
 		label:    "",
 		children: make(map[string]*Route),
@@ -72,8 +66,8 @@ func insertNode(node *Route, service *service.BackendService) {
 }
 
 func findBackendService(trie *RoutingTrie, r *http.Request) *service.BackendService {
-	trie.mutex.RLock()
-	defer trie.mutex.RUnlock()
+	trie.Mutex.RLock()
+	defer trie.Mutex.RUnlock()
 
 	node := trie.root
 	pathSegments := strings.Split(r.URL.Path, "/")
@@ -116,120 +110,4 @@ func findBackendService(trie *RoutingTrie, r *http.Request) *service.BackendServ
 	}
 
 	return nil
-}
-
-func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			clientLock.Lock()
-
-			// Update the transport settings for each client
-			for _, client := range clients {
-				transport := client.Transport.(*http.Transport)
-				transport.MaxIdleConns = bs.MaxIdleConns
-				transport.IdleConnTimeout = bs.MaxIdleTime * time.Second
-				transport.TLSHandshakeTimeout = bs.Timeout * time.Second
-			}
-
-			clientLock.Unlock()
-		}
-	}
-}
-
-func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Client, clientLock *sync.Mutex) {
-
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			services := bs.GetServices()
-
-			// Remove clients that are no longer needed
-			clientLock.Lock()
-			for k := range clients {
-				found := false
-				for _, s := range services {
-					for _, t := range s.UpstreamTargets {
-						key := fmt.Sprintf("%s_%s", s.Name, t)
-						if key == k {
-							found = true
-							break
-						}
-					}
-					if found {
-						break
-					}
-				}
-				if !found {
-					delete(clients, k)
-				}
-			}
-			clientLock.Unlock()
-
-			// Add or update clients for each service
-			for _, s := range services {
-				for _, t := range s.UpstreamTargets {
-					clientLock.Lock()
-					key := fmt.Sprintf("%s_%s", s.Name, t)
-					_, ok := clients[key]
-					if !ok {
-						transport := &http.Transport{
-							MaxIdleConns:        s.MaxIdleConns,
-							IdleConnTimeout:     s.MaxIdleTime * time.Second,
-							TLSHandshakeTimeout: s.Timeout * time.Second,
-						}
-						client := &http.Client{
-							Transport: transport,
-						}
-						clients[key] = client
-					} else {
-						clients[key].Transport.(*http.Transport).MaxIdleConns = s.MaxIdleConns
-						clients[key].Transport.(*http.Transport).IdleConnTimeout = s.MaxIdleTime * time.Second
-						clients[key].Transport.(*http.Transport).TLSHandshakeTimeout = s.Timeout * time.Second
-					}
-					clientLock.Unlock()
-				}
-				refreshClients(s, clients, clientLock)
-			}
-		}
-	}
-}
-
-func getClientForBackendService(bs service.BackendService, target string, clients map[string]*http.Client, clientLock *sync.Mutex) (*http.Client, error) {
-	clientLock.Lock()
-	defer clientLock.Unlock()
-
-	// Check if the client for this target already exists
-	if client, ok := clients[target]; ok {
-		return client, nil
-	}
-
-	// Create a new transport with the specified settings
-	transport := &http.Transport{
-		MaxIdleConns:        bs.MaxIdleConns,
-		IdleConnTimeout:     bs.MaxIdleTime * time.Second,
-		TLSHandshakeTimeout: bs.Timeout * time.Second,
-	}
-
-	// Create a new HTTP client with the transport
-	client := &http.Client{
-		Transport: transport,
-	}
-
-	// Add the client to the map of clients
-	key := fmt.Sprintf("%s_%s", bs.Name, target)
-	clients[key] = client
-
-	return client, nil
-}
-
-func copyHeaders(dst, src http.Header) {
-	for k, v := range src {
-		dst[k] = v
-	}
 }

@@ -2,6 +2,7 @@ package service
 
 // MemoryServiceRegistry is an in-memory implementation of the ServiceRegistry interface
 type MemoryServiceRegistry struct {
+	baseRegistry
 	Services map[string]*BackendService
 }
 

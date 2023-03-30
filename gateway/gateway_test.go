@@ -311,10 +311,11 @@ func TestFindBackendService(t *testing.T) {
 		},
 	}
 
+	var trie RoutingTrie
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			root := BuildRoutes(tc.services)
-			result := findBackendService(root, tc.request)
+			trie.BuildRoutes(tc.services)
+			result := findBackendService(&trie, tc.request)
 			if !reflect.DeepEqual(result, tc.expectedOutput) {
 				t.Errorf("Unexpected result: got %#v, want %#v", result, tc.expectedOutput)
 			}

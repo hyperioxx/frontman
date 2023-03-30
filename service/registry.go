@@ -13,6 +13,10 @@ type ServiceRegistry interface {
 	UpdateService(service *BackendService) error
 	RemoveService(name string) error
 	GetServices() []*BackendService
+
+	GetTrie() *gateway.RoutingTrie
+	SetTrie(trie *gateway.RoutingTrie)
+	GetLock() *sync.RWMutex
 }
 
 type baseRegistry struct {
@@ -22,36 +26,45 @@ type baseRegistry struct {
 }
 
 func NewServiceRegistry(ctx context.Context, serviceType string, config *config.Config) (ServiceRegistry, error) {
+	var (
+		reg ServiceRegistry
+		err error
+	)
+
 	switch serviceType {
 	case "redis":
 		redisClient, err := NewRedisClient(ctx, config.GlobalConfig.RedisURI)
 		if err != nil {
 			return nil, err
 		}
-		redisBackendServices, err := NewRedisRegistry(ctx, redisClient, config.GlobalConfig.RedisNamespace)
+		reg, err = NewRedisRegistry(ctx, redisClient, config.GlobalConfig.RedisNamespace)
 		if err != nil {
 			return nil, err
 		}
-		return redisBackendServices, nil
 	case "yaml":
-		yamlBackendServices, err := NewYAMLServiceRegistry(config.GlobalConfig.ServicesFile)
+		reg, err = NewYAMLServiceRegistry(config.GlobalConfig.ServicesFile)
 		if err != nil {
 			return nil, err
 		}
-		return yamlBackendServices, nil
 	case "mongo":
 		mongoClient, err := NewMongoClient(ctx, config.GlobalConfig.MongoURI)
 		if err != nil {
 			return nil, err
 		}
-		mongoBackendServices, err := NewMongoServiceRegistry(ctx, mongoClient, config.GlobalConfig.MongoDatabaseName, config.GlobalConfig.MongoCollectionName)
+		reg, err = NewMongoServiceRegistry(ctx, mongoClient, config.GlobalConfig.MongoDatabaseName, config.GlobalConfig.MongoCollectionName)
 		if err != nil {
 			return nil, err
 		}
-		return mongoBackendServices, nil
 	default:
 		return nil, ErrUnsupportedServiceType{serviceType: serviceType}
 	}
+
+	// Initialise routing trie
+	routingTrie := gateway.RoutingTrie{Mutex: reg.GetLock()}
+	routingTrie.BuildRoutes(reg.GetServices())
+	reg.SetTrie(&routingTrie)
+
+	return reg, nil
 }
 
 func (r *baseRegistry) getServices() []*BackendService {
@@ -76,6 +89,8 @@ func (r *baseRegistry) addService(service *BackendService, apply func() error) e
 		return err
 	}
 
+	r.routingTrie.BuildRoutes(r.services)
+
 	return nil
 }
 
@@ -91,6 +106,7 @@ func (r *baseRegistry) updateService(service *BackendService, apply func() error
 				return err
 			}
 
+			r.routingTrie.BuildRoutes(r.services)
 			return nil
 		}
 	}
@@ -110,9 +126,22 @@ func (r *baseRegistry) removeService(name string, apply func() error) error {
 				return err
 			}
 
+			r.routingTrie.BuildRoutes(r.services)
 			return nil
 		}
 	}
 
 	return ErrServiceNotFound{Name: name}
+}
+
+func (r *baseRegistry) GetTrie() *gateway.RoutingTrie {
+	return r.routingTrie
+}
+
+func (r *baseRegistry) SetTrie(trie *gateway.RoutingTrie) {
+	r.routingTrie = trie
+}
+
+func (r *baseRegistry) GetLock() *sync.RWMutex {
+	return &r.mutex
 }

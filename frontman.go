@@ -36,11 +36,6 @@ func NewFrontman(conf *config.Config, log log.Logger) (*Frontman, error) {
 		return nil, err
 	}
 
-	// Initialise routing trie
-	var routingTrie gateway.RoutingTrie
-
-	routingTrie.BuildRoutes(serviceRegistry.GetServices())
-
 	// Create management API router
 	servicesRouter := api.NewServicesRouter(serviceRegistry)
 
@@ -58,7 +53,7 @@ func NewFrontman(conf *config.Config, log log.Logger) (*Frontman, error) {
 	// Create new APIGateway instance
 	clients := make(map[string]*http.Client)
 	lock := sync.Mutex{}
-	apiGateway := gateway.NewAPIGateway(serviceRegistry, plug, conf, clients, &routingTrie, log, &lock)
+	apiGateway := gateway.NewAPIGateway(serviceRegistry, plug, conf, clients, log, &lock)
 
 	go gateway.RefreshConnections(serviceRegistry, clients, &lock)
 
