@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"fmt"
 	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"net/http"
@@ -202,8 +203,9 @@ func TestGatewayHandler(t *testing.T) {
 			},
 			mockErr: nil,
 		}}
-		reg := service.NewMemoryServiceRegistry()
-		reg.Services["test"] = bs
+
+		reg, _ := service.NewServiceRegistry(context.Background(), "memory", nil)
+		reg.AddService(bs)
 
 		req := httptest.NewRequest("GET", tc.requestURL, nil)
 		w := httptest.NewRecorder()
@@ -311,10 +313,16 @@ func TestFindBackendService(t *testing.T) {
 		},
 	}
 
+	reg, _ := service.NewServiceRegistry(context.Background(), "memory", nil)
+
 	for _, tc := range testCases {
+		for _, s := range tc.services {
+			reg.AddService(s)
+		}
+
 		t.Run(tc.name, func(t *testing.T) {
-			root := buildRoutes(tc.services)
-			result := findBackendService(root, tc.request)
+			reg.GetTrie().BuildRoutes(tc.services)
+			result := reg.GetTrie().FindBackendService(tc.request)
 			if !reflect.DeepEqual(result, tc.expectedOutput) {
 				t.Errorf("Unexpected result: got %#v, want %#v", result, tc.expectedOutput)
 			}
@@ -409,8 +417,8 @@ func BenchmarkGatewayHandler(b *testing.B) {
 
 	bs.Init()
 
-	reg := service.NewMemoryServiceRegistry()
-	reg.Services["test"] = bs
+	reg, _ := service.NewServiceRegistry(context.Background(), "memory", nil)
+	reg.AddService(bs)
 
 	req, _ := http.NewRequest("GET", "https://test.com/api/anything?test", nil)
 	w := httptest.NewRecorder()

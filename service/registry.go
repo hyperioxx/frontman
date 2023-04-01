@@ -12,44 +12,63 @@ type ServiceRegistry interface {
 	UpdateService(service *BackendService) error
 	RemoveService(name string) error
 	GetServices() []*BackendService
+	GetTrie() *RoutingTrie
 }
 
 type baseRegistry struct {
-	services []*BackendService
-	mutex    sync.RWMutex
+	mutex       *sync.RWMutex
+	services    []*BackendService
+	routingTrie *RoutingTrie
 }
 
 func NewServiceRegistry(ctx context.Context, serviceType string, config *config.Config) (ServiceRegistry, error) {
+	var (
+		reg ServiceRegistry
+		mu  sync.RWMutex
+		err error
+	)
+
+	baseReg := baseRegistry{
+		mutex: &mu,
+		routingTrie: &RoutingTrie{
+			mutex: &mu,
+		},
+	}
+
 	switch serviceType {
 	case "redis":
 		redisClient, err := NewRedisClient(ctx, config.GlobalConfig.RedisURI)
 		if err != nil {
 			return nil, err
 		}
-		redisBackendServices, err := NewRedisRegistry(ctx, redisClient, config.GlobalConfig.RedisNamespace)
+		reg, err = NewRedisRegistry(ctx, redisClient, config.GlobalConfig.RedisNamespace, &baseReg)
 		if err != nil {
 			return nil, err
 		}
-		return redisBackendServices, nil
 	case "yaml":
-		yamlBackendServices, err := NewYAMLServiceRegistry(config.GlobalConfig.ServicesFile)
+		reg, err = NewYAMLServiceRegistry(config.GlobalConfig.ServicesFile, &baseReg)
 		if err != nil {
 			return nil, err
 		}
-		return yamlBackendServices, nil
 	case "mongo":
 		mongoClient, err := NewMongoClient(ctx, config.GlobalConfig.MongoURI)
 		if err != nil {
 			return nil, err
 		}
-		mongoBackendServices, err := NewMongoServiceRegistry(ctx, mongoClient, config.GlobalConfig.MongoDatabaseName, config.GlobalConfig.MongoCollectionName)
+		reg, err = NewMongoServiceRegistry(ctx, mongoClient, config.GlobalConfig.MongoDatabaseName, config.GlobalConfig.MongoCollectionName, &baseReg)
 		if err != nil {
 			return nil, err
 		}
-		return mongoBackendServices, nil
+	case "memory": // For testing
+		reg = NewMemoryServiceRegistry(&baseReg)
 	default:
 		return nil, ErrUnsupportedServiceType{serviceType: serviceType}
 	}
+
+	// Initialise routing trie
+	baseReg.routingTrie.BuildRoutes(reg.GetServices())
+
+	return reg, nil
 }
 
 func (r *baseRegistry) getServices() []*BackendService {
@@ -74,6 +93,8 @@ func (r *baseRegistry) addService(service *BackendService, apply func() error) e
 		return err
 	}
 
+	r.routingTrie.BuildRoutes(r.services)
+
 	return nil
 }
 
@@ -89,6 +110,7 @@ func (r *baseRegistry) updateService(service *BackendService, apply func() error
 				return err
 			}
 
+			r.routingTrie.BuildRoutes(r.services)
 			return nil
 		}
 	}
@@ -108,9 +130,14 @@ func (r *baseRegistry) removeService(name string, apply func() error) error {
 				return err
 			}
 
+			r.routingTrie.BuildRoutes(r.services)
 			return nil
 		}
 	}
 
 	return ErrServiceNotFound{Name: name}
+}
+
+func (r *baseRegistry) GetTrie() *RoutingTrie {
+	return r.routingTrie
 }

@@ -251,7 +251,7 @@ Supported Load Balancer types:
 - Weighted Least Connection
   ```json
     "loadBalancerPolicy": { 
-      "type": "weightd_least_conn"
+      "type": "weighted_least_conn"
       "options": {
         "weights": [1, 2, 3]
     }

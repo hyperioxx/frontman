@@ -2,11 +2,13 @@ package gateway
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Frontman-Labs/frontman/config"
 	"github.com/Frontman-Labs/frontman/log"
@@ -15,7 +17,7 @@ import (
 )
 
 type APIGateway struct {
-	bs         service.ServiceRegistry
+	reg        service.ServiceRegistry
 	plugs      []plugins.FrontmanPlugin
 	conf       *config.Config
 	clients    map[string]*http.Client
@@ -25,7 +27,7 @@ type APIGateway struct {
 
 func NewAPIGateway(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client, logger log.Logger, lock *sync.Mutex) *APIGateway {
 	return &APIGateway{
-		bs:         bs,
+		reg:        bs,
 		plugs:      plugs,
 		conf:       conf,
 		clients:    clients,
@@ -35,9 +37,8 @@ func NewAPIGateway(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, c
 }
 
 func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	root := buildRoutes(g.bs.GetServices())
 	for _, plugin := range g.plugs {
-		if err := plugin.PreRequest(req, g.bs, g.conf); err != nil {
+		if err := plugin.PreRequest(req, g.reg, g.conf); err != nil {
 			g.log.Errorf("Plugin error: %v", err)
 			http.Error(w, err.Error(), err.StatusCode())
 			return
@@ -45,7 +46,7 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Find the backend service that matches the request
-	backendService := findBackendService(root, req)
+	backendService := g.reg.GetTrie().FindBackendService(req)
 
 	// If the backend service was not found, return a 404 error
 	if backendService == nil {
@@ -55,7 +56,9 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Get the upstream target URL for this request
 	upstreamTarget := backendService.GetLoadBalancer().ChooseTarget(backendService.UpstreamTargets)
+
 	var urlPath string
+
 	if backendService.StripPath {
 		urlPath = strings.TrimPrefix(req.URL.Path, backendService.Path)
 	} else {
@@ -63,7 +66,6 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Create a new target URL with the service path and scheme
-
 	targetURL, err := url.Parse(upstreamTarget + urlPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -72,9 +74,11 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Get or create a new client for this backend service
 	client, err := getClientForBackendService(*backendService, backendService.Name, g.clients, g.clientLock)
-	headers := make(http.Header)
+
 	// Copy the headers from the original request
+	headers := make(http.Header)
 	copyHeaders(headers, req.Header)
+
 	if backendService.AuthConfig != nil {
 		tokenValidator := backendService.GetTokenValidator()
 		// Backend service has auth config specified
@@ -123,7 +127,7 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	defer resp.Body.Close()
 
 	for _, plugin := range g.plugs {
-		if err := plugin.PostResponse(resp, g.bs, g.conf); err != nil {
+		if err := plugin.PostResponse(resp, g.reg, g.conf); err != nil {
 			g.log.Infof("Plugin error: %v", err)
 			http.Error(w, err.Error(), err.StatusCode())
 			return
@@ -140,4 +144,120 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 
+}
+
+func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			clientLock.Lock()
+
+			// Update the transport settings for each client
+			for _, client := range clients {
+				transport := client.Transport.(*http.Transport)
+				transport.MaxIdleConns = bs.MaxIdleConns
+				transport.IdleConnTimeout = bs.MaxIdleTime * time.Second
+				transport.TLSHandshakeTimeout = bs.Timeout * time.Second
+			}
+
+			clientLock.Unlock()
+		}
+	}
+}
+
+func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Client, clientLock *sync.Mutex) {
+
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			services := bs.GetServices()
+
+			// Remove clients that are no longer needed
+			clientLock.Lock()
+			for k := range clients {
+				found := false
+				for _, s := range services {
+					for _, t := range s.UpstreamTargets {
+						key := fmt.Sprintf("%s_%s", s.Name, t)
+						if key == k {
+							found = true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+				if !found {
+					delete(clients, k)
+				}
+			}
+			clientLock.Unlock()
+
+			// Add or update clients for each service
+			for _, s := range services {
+				for _, t := range s.UpstreamTargets {
+					clientLock.Lock()
+					key := fmt.Sprintf("%s_%s", s.Name, t)
+					_, ok := clients[key]
+					if !ok {
+						transport := &http.Transport{
+							MaxIdleConns:        s.MaxIdleConns,
+							IdleConnTimeout:     s.MaxIdleTime * time.Second,
+							TLSHandshakeTimeout: s.Timeout * time.Second,
+						}
+						client := &http.Client{
+							Transport: transport,
+						}
+						clients[key] = client
+					} else {
+						clients[key].Transport.(*http.Transport).MaxIdleConns = s.MaxIdleConns
+						clients[key].Transport.(*http.Transport).IdleConnTimeout = s.MaxIdleTime * time.Second
+						clients[key].Transport.(*http.Transport).TLSHandshakeTimeout = s.Timeout * time.Second
+					}
+					clientLock.Unlock()
+				}
+				refreshClients(s, clients, clientLock)
+			}
+		}
+	}
+}
+
+func getClientForBackendService(bs service.BackendService, target string, clients map[string]*http.Client, clientLock *sync.Mutex) (*http.Client, error) {
+	clientLock.Lock()
+	defer clientLock.Unlock()
+
+	// Check if the client for this target already exists
+	if client, ok := clients[target]; ok {
+		return client, nil
+	}
+
+	// Create a new transport with the specified settings
+	transport := &http.Transport{
+		MaxIdleConns:        bs.MaxIdleConns,
+		IdleConnTimeout:     bs.MaxIdleTime * time.Second,
+		TLSHandshakeTimeout: bs.Timeout * time.Second,
+	}
+
+	// Create a new HTTP client with the transport
+	client := &http.Client{
+		Transport: transport,
+	}
+
+	// Add the client to the map of clients
+	key := fmt.Sprintf("%s_%s", bs.Name, target)
+	clients[key] = client
+
+	return client, nil
+}
+
+func copyHeaders(dst, src http.Header) {
+	for k, v := range src {
+		dst[k] = v
+	}
 }
