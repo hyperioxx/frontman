@@ -8,13 +8,16 @@ import (
 
 // YAMLServiceRegistry implements the ServiceRegistry interface
 type YAMLServiceRegistry struct {
-	baseRegistry
+	*baseRegistry
 	filename string
 }
 
 // NewYAMLServiceRegistry creates a new YAMLServiceRegistry instance from a file
-func NewYAMLServiceRegistry(filename string) (*YAMLServiceRegistry, error) {
-	reg := &YAMLServiceRegistry{filename: filename}
+func NewYAMLServiceRegistry(filename string, br *baseRegistry) (*YAMLServiceRegistry, error) {
+	reg := &YAMLServiceRegistry{
+		baseRegistry: br,
+		filename:     filename}
+
 	err := reg.readFromFile(filename)
 	if err != nil {
 		return nil, err

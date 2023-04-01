@@ -46,7 +46,7 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Find the backend service that matches the request
-	backendService := findBackendService(g.reg.GetTrie(), req)
+	backendService := g.reg.GetTrie().FindBackendService(req)
 
 	// If the backend service was not found, return a 404 error
 	if backendService == nil {

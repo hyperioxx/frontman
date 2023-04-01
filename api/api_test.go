@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,10 +26,10 @@ func TestGetServicesHandler(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	// Create a new backend service registry
-	backendServices := service.NewMemoryServiceRegistry()
+	reg, _ := service.NewServiceRegistry(context.Background(), "memory", nil)
 
 	// Call the handler function
-	handler := getServicesHandler(backendServices)
+	handler := getServicesHandler(reg)
 	handler(rr, req, nil)
 
 	// Check the status code
@@ -80,10 +81,10 @@ func TestAddServiceHandler(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	// Create a new backend service registry
-	backendServices := service.NewMemoryServiceRegistry()
+	reg, _ := service.NewServiceRegistry(context.Background(), "memory", nil)
 
 	// Call the handler function
-	handler := addServiceHandler(backendServices)
+	handler := addServiceHandler(reg)
 	handler(rr, req, nil)
 
 	// Check the status code
@@ -100,8 +101,8 @@ func TestAddServiceHandler(t *testing.T) {
 	}
 
 	// Check that the backend service was added
-	if len(backendServices.GetServices()) != 1 {
-		t.Errorf("Expected 1 service to be added to the backend service registry, but got %v", len(backendServices.GetServices()))
+	if len(reg.GetServices()) != 1 {
+		t.Errorf("Expected 1 service to be added to the backend service registry, but got %v", len(reg.GetServices()))
 	}
 }
 
@@ -117,10 +118,10 @@ func TestRemoveServiceHandler(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	// Create a new backend service registry
-	backendServices := service.NewMemoryServiceRegistry()
+	reg, _ := service.NewServiceRegistry(context.Background(), "memory", nil)
 
 	// Call the handler function
-	handler := removeServiceHandler(backendServices)
+	handler := removeServiceHandler(reg)
 	handler(rr, req, httprouter.Params{{"name", "test"}})
 
 	// Check the status code

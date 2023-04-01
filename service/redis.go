@@ -24,15 +24,20 @@ func NewRedisClient(ctx context.Context, uri string) (*redis.Client, error) {
 
 // RedisRegistry implements the ServiceRegistry interface using Redis as a backend storage
 type RedisRegistry struct {
-	baseRegistry
+	*baseRegistry
 	redisClient *redis.Client
 	namespace   string
 	ctx         context.Context
 }
 
 // NewRedisRegistry creates a new RedisRegistry instance with a Redis client connection
-func NewRedisRegistry(ctx context.Context, redisClient *redis.Client, namespace string) (*RedisRegistry, error) {
-	r := &RedisRegistry{redisClient: redisClient, ctx: ctx, namespace: namespace}
+func NewRedisRegistry(ctx context.Context, redisClient *redis.Client, namespace string, br *baseRegistry) (*RedisRegistry, error) {
+	r := &RedisRegistry{
+		baseRegistry: br,
+		redisClient:  redisClient,
+		ctx:          ctx,
+		namespace:    namespace}
+
 	if err := r.loadServices(); err != nil {
 		return nil, err
 	}

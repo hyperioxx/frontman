@@ -23,7 +23,7 @@ func NewMongoClient(ctx context.Context, uri string) (*mongo.Client, error) {
 }
 
 type mongoServiceRegistry struct {
-	baseRegistry
+	*baseRegistry
 	client        *mongo.Client
 	database      *mongo.Database
 	collection    *mongo.Collection
@@ -31,12 +31,13 @@ type mongoServiceRegistry struct {
 	updateTimeout time.Duration
 }
 
-func NewMongoServiceRegistry(ctx context.Context, client *mongo.Client, database string, collection string) (ServiceRegistry, error) {
+func NewMongoServiceRegistry(ctx context.Context, client *mongo.Client, database string, collection string, br *baseRegistry) (ServiceRegistry, error) {
 
 	r := &mongoServiceRegistry{
-		client:   client,
-		database: client.Database(database),
-		ctx:      ctx,
+		baseRegistry: br,
+		client:       client,
+		database:     client.Database(database),
+		ctx:          ctx,
 	}
 
 	r.collection = r.database.Collection(collection)
