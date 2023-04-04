@@ -3,14 +3,12 @@ package auth
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"fmt"
-	"net/http"
-	"testing"
-	"time"
-
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
+	"net/http"
+	"testing"
+	"time"
 )
 
 // TestGetServicesHandler tests the getServicesHandler function
@@ -44,7 +42,7 @@ func TestValidateJWTToken(t *testing.T) {
 		t.Errorf("failed to generate signed serialized: %s\n", err)
 	}
 	headers := make(http.Header)
-	headers.Add("Authorization", fmt.Sprintf("Bearer %s", string(signed)))
+	headers.Add("Authorization", string(signed))
 	result, err := validator.ValidateToken(&http.Request{
 		Header: headers,
 	})
@@ -135,7 +133,7 @@ func TestValidateJWTExpiredToken(t *testing.T) {
 		t.Errorf("failed to generate signed serialized: %s\n", err)
 	}
 	headers := make(http.Header)
-	headers.Add("Authorization", fmt.Sprintf("Bearer %s",string(signed)))
+	headers.Add("Authorization", string(signed))
 	_, err = validator.ValidateToken(&http.Request{
 		Header: headers,
 	})
