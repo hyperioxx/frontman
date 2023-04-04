@@ -68,6 +68,5 @@ func (v JWTValidator) ValidateToken(request *http.Request) (map[string]interface
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(result.Expiration())
 	return result.PrivateClaims(), nil
 }
