@@ -42,7 +42,6 @@ func buildDefaultToken(t *testing.T, claims map[string]interface{}) jwt.Token {
 		err := token.Set(key, value)
 		require.NoError(t, err)
 	}
-	fmt.Println(token.Expiration())
 	return token
 }
 
