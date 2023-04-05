@@ -13,7 +13,7 @@ type TokenValidator interface {
 func GetTokenValidator(conf config.AuthConfig) (TokenValidator, error) {
 	switch conf.AuthType {
 	case "jwt":
-		return NewJWTValidator(conf.JWT.Audience, conf.JWT.Issuer, conf.JWT.KeysUrl)
+		return NewJWTValidator(conf.JWT)
 	case "basic":
 		return NewBasicAuthValidator(conf.BasicAuthConfig)
 	default:
