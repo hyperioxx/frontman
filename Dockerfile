@@ -1,5 +1,5 @@
 # Use an official Golang runtime as a parent image
-FROM golang:1.18-alpine AS build
+FROM golang:1.20.2-alpine AS build
 
 # Install GNU Make
 RUN apk add --no-cache make
