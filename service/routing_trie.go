@@ -73,7 +73,7 @@ func (rt *RoutingTrie) FindBackendService(r *http.Request) *BackendService {
 		node = child
 	}
 
-	return nil
+	return node.service
 }
 
 func (rt *RoutingTrie) insertNode(service *BackendService) {
