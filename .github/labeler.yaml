@@ -1,0 +1,29 @@
+# Add 'repo' label to any root file changes
+repo:
+- '*'
+
+# Add 'test' label to any change to a *_test.go file
+test:
+- '**/*_test.go'
+
+# Add 'source' label to any change to src files within the source dir EXCEPT for the docs sub-folder
+auth:
+- any: 
+   - 'auth/**/*'
+   - 'oauth/**/*'
+
+config:
+  - 'config/**/*'
+
+plugins:
+- 'plugins/**/*' 
+
+logger:
+- 'log/**/*'
+
+ci:
+- '.github/**/*'
+
+docker-config:
+- 'Dockerfile'
+- 'docker-compose.yml'
