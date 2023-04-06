@@ -171,6 +171,20 @@ func TestGatewayHandler(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 			expectedHeader:     "plugin",
 		},
+		{
+			name:               "Test Case 9 - Test Root Path /",
+			domain:             "localhost",
+			path:               "/api",
+			scheme:             "http",
+			stripPath:          true,
+			maxIdleConns:       100,
+			maxIdleTime:        10,
+			timeout:            5,
+			upstreamTargets:    []string{"http://localhost:8000", "http://localhost:8001", "http://localhost:8002"},
+			requestURL:         "http://localhost/api",
+			expectedStatusCode: http.StatusOK,
+			expectedHeader:     "plugin",
+		},
 	}
 
 	for _, tc := range testCases {
