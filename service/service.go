@@ -26,6 +26,8 @@ type BackendService struct {
 	StripPath          bool               `json:"stripPath,omitempty" yaml:"stripPath,omitempty"`
 	AuthConfig         *config.AuthConfig `json:"auth,omitempty" yaml:"auth,omitempty"`
 	LoadBalancerPolicy LoadBalancerPolicy `json:"loadBalancerPolicy,omitempty" yaml:"loadBalancerPolicy,omitempty"`
+	RewriteMatch       string             `json:"rewriteMatch,omitempty" yaml:"rewriteMatch,omitempty"`
+    RewriteReplace     string             `json:"rewriteReplace,omitempty" yaml:"rewriteReplace,omitempty"`
 
 	loadBalancer   loadbalancer.LoadBalancer
 	provider       oauth.OAuthProvider
