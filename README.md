@@ -33,6 +33,8 @@ Overall, Frontman is a powerful and flexible API gateway that simplifies the man
       - [Running Frontman Locally](#running-frontman-locally)
       - [Running Frontman in Docker](#running-frontman-in-docker)
   - [Managing Backend Services](#managing-backend-services)
+  - [Adding authentication to backend services](#adding-authentication-to-backend-services)
+  - [URL Rewrite](#url-rewrite)
   - [Frontman Plugins](#frontman-plugins)
   - [Contributing](#contributing)
   - [License](#license)
@@ -315,6 +317,32 @@ password: "filetest"
       issuer: <issuer>
       keysUrl: <jwks_uri>
 ```
+
+## URL Rewrite
+
+The API Gateway now supports URL rewriting, allowing you to modify the requested URL path before forwarding the request to the upstream service. To use this feature, you'll need to provide two additional fields in the BackendService configuration:
+
+- **RewriteMatch**: A regular expression pattern that matches the part of the URL path you want to rewrite.
+- **RewriteReplace**: The string that should replace the matched part of the URL path.
+
+Example yaml file configuration:
+
+```yaml
+  - name: example-service
+    domain: example.com
+    path: /api
+    scheme: https
+    stripPath: false
+    rewriteMatch: "/api/([^/]+)/v1"
+    rewriteReplace: "/api/$1/v2"
+    upstreamTargets:
+      - https://upstream.example.com
+
+```
+
+In this example, any request with a URL path that matches the pattern /api/([^/]+)/v1 will be rewritten to use /api/<captured_group>/v2 before being forwarded to the upstream service. This allows you to seamlessly redirect requests to a new API version or change the URL structure as needed.
+
+Please note that the URL rewriting takes place after the stripPath processing. If stripPath is set to true, the provided rewriteMatch and rewriteReplace patterns should take that into account.
 
 ## Frontman Plugins
 
