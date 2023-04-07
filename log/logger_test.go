@@ -17,5 +17,5 @@ func TestLogger(t *testing.T) {
 	logger.Error("basic ", "logging")
 	logger.Errorf("error formatted log: %s to %d", "I could not count", 123)
 	logger.WithFields(ErrorLevel, "unexpected traffic received", Error("terrible error message"))
-	logger.WithFields(InfoLevel, "ingress traffic received", String("url", "https://github.com/Frontman-Labs/frontman"), String("host", "162.1.3.2"), String("port", "32133"))
+	logger.WithFields(InfoLevel, "ingress traffic received", String("url", "https://github.com/Frontman-Labs/frontman"), String("host", "162.1.3.2"), Int("port", 32133), Bool("tls_enabled", true))
 }

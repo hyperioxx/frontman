@@ -4,10 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/Frontman-Labs/frontman/api"
-	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"sync"
+
+	"github.com/Frontman-Labs/frontman/api"
+	"github.com/julienschmidt/httprouter"
 
 	"github.com/Frontman-Labs/frontman/config"
 	"github.com/Frontman-Labs/frontman/gateway"
@@ -80,37 +81,32 @@ func (gw *Frontman) Start() error {
 	var apiHandler http.Handler
 	var gatewayHandler http.Handler
 
+	apiHandler = gw.service
+	var apicert *tls.Certificate
 	if gw.conf.APIConfig.SSL.Enabled {
-		apiHandler = gw.service
 		cert, err := ssl.LoadCert(gw.conf.APIConfig.SSL.Cert, gw.conf.APIConfig.SSL.Key)
 		if err != nil {
 			return err
 		}
-		apiServer := createServer(apiAddr, apiHandler, &cert)
-		gw.log.Infof("Started Frontman API with SSL on %s", apiAddr)
-		go func() {
-			if err := startServer(apiServer); err != nil {
-				gw.log.Fatal(err)
-			}
-		}()
-	} else {
-		apiHandler = gw.service
-		api := createServer(apiAddr, apiHandler, nil)
-		gw.log.Infof("Started Frontman API on %s", apiAddr)
-		go func() {
-			if err := startServer(api); err != nil {
-				gw.log.Fatal(err)
-			}
-		}()
+		apicert = cert
 	}
+	apiHandler = gw.service
+	api := createServer(apiAddr, apiHandler, apicert)
+	go func() {
+		if err := startServer(api); err != nil {
+			gw.log.Fatal(err)
+		}
+	}()
+	gw.log.WithFields(log.InfoLevel, fmt.Sprintf("Started Frontman API on %s", apiAddr), log.Bool("tls_enabled", gw.conf.APIConfig.SSL.Enabled))
 
+	var gwcert *tls.Certificate
+	gatewayHandler = gw.router
 	if gw.conf.GatewayConfig.SSL.Enabled {
-		gatewayHandler = gw.router
 		cert, err := ssl.LoadCert(gw.conf.GatewayConfig.SSL.Cert, gw.conf.GatewayConfig.SSL.Key)
 		if err != nil {
 			return err
 		}
-
+		gwcert = cert
 		// Redirect HTTP traffic to HTTPS
 		httpAddr := "0.0.0.0:80"
 		httpRedirect := createRedirectServer(httpAddr, gatewayAddr)
@@ -120,19 +116,12 @@ func (gw *Frontman) Start() error {
 				gw.log.Fatal(err)
 			}
 		}()
-
-		gatewayServer := createServer(gatewayAddr, gatewayHandler, &cert)
-		gw.log.Infof("Started Frontman Frontman with SSL on %s", gatewayAddr)
-		if err := startServer(gatewayServer); err != nil {
-			return err
-		}
-	} else {
-		gatewayHandler = gw.router
-		gateway := createServer(gatewayAddr, gatewayHandler, nil)
-		gw.log.Infof("Started Frontman Frontman on %s", gatewayAddr)
-		if err := startServer(gateway); err != nil {
-			return err
-		}
+	}
+	gatewayHandler = gw.router
+	gateway := createServer(gatewayAddr, gatewayHandler, gwcert)
+	gw.log.WithFields(log.InfoLevel, fmt.Sprintf("Started Frontman Frontman on %s", gatewayAddr), log.Bool("tls_enabled", gw.conf.GatewayConfig.SSL.Enabled))
+	if err := startServer(gateway); err != nil {
+		return err
 	}
 
 	return nil

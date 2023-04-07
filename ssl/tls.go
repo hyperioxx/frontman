@@ -5,10 +5,10 @@ import (
 	"fmt"
 )
 
-func LoadCert(certFile, keyFile string) (tls.Certificate, error) {
+func LoadCert(certFile, keyFile string) (*tls.Certificate, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("Failed to load certificate: %w", err)
+		return &tls.Certificate{}, fmt.Errorf("Failed to load certificate: %w", err)
 	}
-	return cert, nil
+	return &cert, nil
 }

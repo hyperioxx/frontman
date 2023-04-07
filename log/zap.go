@@ -1,8 +1,6 @@
 package log
 
 import (
-	"os"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -53,16 +51,37 @@ func (l ZapLogger) Error(args ...interface{}) {
 
 func fieldsToZap(fields ...Field) (zfields []zapcore.Field) {
 	for _, field := range fields {
-		zfields = append(zfields, zap.String(field.key, field.value))
+		zfields = append(zfields, zap.Field{
+			Key:       field.key,
+			String:    field.stringValue,
+			Integer:   field.integerValue,
+			Interface: field.value,
+			Type:      field.GetZapType(),
+		})
 	}
+
 	return zfields
+}
+
+func (f *Field) GetZapType() zapcore.FieldType {
+	switch f.fieldType {
+	case stringField:
+		return zapcore.StringType
+	case boolField:
+		return zapcore.BoolType
+	case integerField:
+		return zapcore.Int64Type
+	default:
+		return zapcore.StringType
+	}
+
 }
 
 func (l ZapLogger) WithFields(level logLevel, msg string, fields ...Field) {
 	lvl, err := zapcore.ParseLevel(string(level))
 	if err != nil {
-		l.Fatalf("Unknown log level: %s", level)
-		os.Exit(1)
+		l.Error("Unknown log level: %s", level)
+		lvl = zap.InfoLevel
 	}
 	l.zap.Log(lvl, msg, fieldsToZap(fields...)...)
 }

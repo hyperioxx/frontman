@@ -186,12 +186,12 @@ func validateLoadBalancerPolicy(s *service.BackendService) error {
 	case loadbalancer.RoundRobin:
 	case loadbalancer.WeightedRoundRobin, loadbalancer.WeightedLeastConnection:
 		if len(s.LoadBalancerPolicy.Options.Weights) != len(s.UpstreamTargets) {
-			return fmt.Errorf("mismatched lengts of weights and targets")
+			return fmt.Errorf("mismatched lengths of weights and targets")
 		}
 
 		for _, w := range s.LoadBalancerPolicy.Options.Weights {
 			if w <= 0 {
-				return fmt.Errorf("weightes must be greater than zero")
+				return fmt.Errorf("weights must be greater than zero")
 			}
 		}
 	default:
