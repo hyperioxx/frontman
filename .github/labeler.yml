@@ -1,7 +1,3 @@
-# Add 'repo' label to any root file changes
-repo:
-- '*'
-
 # Add 'test' label to any change to a *_test.go file
 test:
 - '**/*_test.go'
