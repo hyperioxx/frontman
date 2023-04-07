@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -62,7 +63,16 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if backendService.StripPath {
 		urlPath = strings.TrimPrefix(req.URL.Path, backendService.Path)
 	} else {
-		urlPath = backendService.Path
+		urlPath = req.URL.Path
+	}
+
+	if backendService.RewriteMatch != "" && backendService.RewriteReplace != "" {
+		re, err := regexp.Compile(backendService.RewriteMatch)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		urlPath = re.ReplaceAllString(urlPath, backendService.RewriteReplace)
 	}
 
 	// Create a new target URL with the service path and scheme
@@ -70,6 +80,11 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Add query parameters if they are available
+	if req.URL.RawQuery != "" {
+		targetURL.RawQuery = req.URL.RawQuery
 	}
 
 	// Get or create a new client for this backend service
@@ -224,6 +239,7 @@ func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 				}
 				refreshClients(s, clients, clientLock)
 			}
+
 		}
 	}
 }
