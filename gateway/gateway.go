@@ -66,11 +66,11 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Create a new target URL with the service path and scheme
-	targetURL, err := url.Parse(upstreamTarget + urlPath)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+    targetURL, err := url.Parse(upstreamTarget + urlPath + "?" + req.URL.RawQuery)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
 
 	// Get or create a new client for this backend service
 	client, err := getClientForBackendService(*backendService, backendService.Name, g.clients, g.clientLock)
@@ -224,6 +224,7 @@ func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 				}
 				refreshClients(s, clients, clientLock)
 			}
+			
 		}
 	}
 }

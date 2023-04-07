@@ -185,6 +185,20 @@ func TestGatewayHandler(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 			expectedHeader:     "plugin",
 		},
+		{
+			name:               "Test Case 10 - Query parameters",
+			domain:             "test.com",
+			path:               "/api",
+			scheme:             "https",
+			stripPath:          true,
+			maxIdleConns:       100,
+			maxIdleTime:        10,
+			timeout:            5,
+			upstreamTargets:    []string{"https://httpbin.org"},
+			requestURL:         "https://test.com/api/anything?foo=bar&baz=qux",
+			expectedStatusCode: http.StatusOK,
+			expectedHeader:     "plugin",
+		},
 	}
 
 	for _, tc := range testCases {
