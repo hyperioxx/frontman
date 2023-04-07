@@ -61,6 +61,14 @@ func Bool(key string, value bool) Field {
 	}
 }
 
+func Int(key string, value int64) Field {
+	return Field{
+		key:          key,
+		integerValue: value,
+		fieldType:    integerField,
+	}
+}
+
 func Error(value string) Field {
 	return Field{
 		key:   "err",
