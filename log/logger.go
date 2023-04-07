@@ -1,14 +1,19 @@
 package log
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type logLevel string
 
 const (
-	InfoLevel  logLevel = "info"
-	DebugLevel logLevel = "debug"
-	WarnLevel  logLevel = "warn"
-	ErrorLevel logLevel = "error"
+	InfoLevel    logLevel  = "info"
+	DebugLevel   logLevel  = "debug"
+	WarnLevel    logLevel  = "warn"
+	ErrorLevel   logLevel  = "error"
+	boolField    fieldType = "bool"
+	stringField  fieldType = "string"
+	integerField fieldType = "integer"
 )
 
 type Logger interface {
@@ -27,14 +32,32 @@ type Logger interface {
 
 // Field used for structured logging
 type Field struct {
-	key   string
-	value string
+	key          string
+	stringValue  string
+	integerValue int64
+	value        interface{}
+	fieldType    fieldType
 }
+
+type fieldType string
 
 func String(key string, value string) Field {
 	return Field{
-		key:   key,
-		value: value,
+		key:         key,
+		stringValue: value,
+		fieldType:   stringField,
+	}
+}
+
+func Bool(key string, value bool) Field {
+	var val int64
+	if value {
+		val = 1
+	}
+	return Field{
+		key:          key,
+		integerValue: val,
+		fieldType:    boolField,
 	}
 }
 
