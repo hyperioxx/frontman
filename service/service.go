@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"regexp"
 
 	"github.com/Frontman-Labs/frontman/auth"
 	"github.com/Frontman-Labs/frontman/config"
@@ -29,6 +30,7 @@ type BackendService struct {
 	RewriteMatch       string             `json:"rewriteMatch,omitempty" yaml:"rewriteMatch,omitempty"`
     RewriteReplace     string             `json:"rewriteReplace,omitempty" yaml:"rewriteReplace,omitempty"`
 
+	compiledRegex  *regexp.Regexp
 	loadBalancer   loadbalancer.LoadBalancer
 	provider       oauth.OAuthProvider
 	tokenValidator *auth.TokenValidator
@@ -91,6 +93,11 @@ func (bs *BackendService) GetLoadBalancer() loadbalancer.LoadBalancer {
 	return bs.loadBalancer
 }
 
+func (bs *BackendService) GetMatch() *regexp.Regexp {
+	return bs.compiledRegex
+}
+
+
 func (bs *BackendService) setLoadBalancer() {
 	switch bs.LoadBalancerPolicy.Type {
 	case loadbalancer.Random:
@@ -108,7 +115,19 @@ func (bs *BackendService) setLoadBalancer() {
 	}
 }
 
+func (bs *BackendService) compileRegex() {
+	if bs.RewriteMatch != "" && bs.RewriteReplace != "" {
+		compiled, err := regexp.Compile(bs.RewriteMatch)
+		if err != nil {
+			log.Printf("Error compiling regex for backend service %s: %s", bs.Name, err.Error())
+			return
+		}
+		bs.compiledRegex = compiled
+	}
+}
+
 func (bs *BackendService) Init() {
 	bs.setTokenValidator()
 	bs.setLoadBalancer()
+	bs.compileRegex()
 }

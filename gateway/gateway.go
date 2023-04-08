@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -66,13 +65,9 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		urlPath = req.URL.Path
 	}
 
-	if backendService.RewriteMatch != "" && backendService.RewriteReplace != "" {
-		re, err := regexp.Compile(backendService.RewriteMatch)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		urlPath = re.ReplaceAllString(urlPath, backendService.RewriteReplace)
+	// Use the compiledRegex field in the backendService struct to apply the rewrite
+	if backendService.GetMatch() != nil {
+		urlPath = backendService.GetMatch().ReplaceAllString(urlPath, backendService.RewriteReplace)
 	}
 
 	// Create a new target URL with the service path and scheme
