@@ -174,6 +174,11 @@ func validateService(service *service.BackendService) error {
 		return err
 	}
 
+	err = service.CompilePath()
+	if err != nil {
+		return err
+	}
+
 	service.Init()
 
 	return nil
