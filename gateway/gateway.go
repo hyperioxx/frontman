@@ -2,12 +2,10 @@ package gateway
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Frontman-Labs/frontman/config"
@@ -20,18 +18,14 @@ type APIGateway struct {
 	reg        service.ServiceRegistry
 	plugs      []plugins.FrontmanPlugin
 	conf       *config.Config
-	clients    map[string]*http.Client
-	clientLock *sync.Mutex
 	log        log.Logger
 }
 
-func NewAPIGateway(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, clients map[string]*http.Client, logger log.Logger, lock *sync.Mutex) *APIGateway {
+func NewAPIGateway(bs service.ServiceRegistry, plugs []plugins.FrontmanPlugin, conf *config.Config, logger log.Logger) *APIGateway {
 	return &APIGateway{
 		reg:        bs,
 		plugs:      plugs,
 		conf:       conf,
-		clients:    clients,
-		clientLock: lock,
 		log:        logger,
 	}
 }
@@ -83,7 +77,7 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Get or create a new client for this backend service
-	client, err := getClientForBackendService(*backendService, backendService.Name, g.clients, g.clientLock)
+	client, err := getClientForBackendService(backendService)
 
 	// Copy the headers from the original request
 	headers := make(http.Header)
@@ -157,73 +151,9 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 
-func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Client, clientLock *sync.Mutex) {
-
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			services := bs.GetServices()
-
-			// Remove clients that are no longer needed
-			clientLock.Lock()
-			for k := range clients {
-				found := false
-				for _, s := range services {
-					for _, t := range s.UpstreamTargets {
-						key := fmt.Sprintf("%s_%s", s.Name, t)
-						if key == k {
-							found = true
-							break
-						}
-					}
-					if found {
-						break
-					}
-				}
-				if !found {
-					delete(clients, k)
-				}
-			}
-			clientLock.Unlock()
-
-			// Add or update clients for each service
-			for _, s := range services {
-				for _, t := range s.UpstreamTargets {
-					clientLock.Lock()
-					key := fmt.Sprintf("%s_%s", s.Name, t)
-					_, ok := clients[key]
-					if !ok {
-						transport := &http.Transport{
-							MaxIdleConns:        s.MaxIdleConns,
-							IdleConnTimeout:     s.MaxIdleTime * time.Second,
-							TLSHandshakeTimeout: s.Timeout * time.Second,
-						}
-						client := &http.Client{
-							Transport: transport,
-						}
-						clients[key] = client
-					} else {
-						clients[key].Transport.(*http.Transport).MaxIdleConns = s.MaxIdleConns
-						clients[key].Transport.(*http.Transport).IdleConnTimeout = s.MaxIdleTime * time.Second
-						clients[key].Transport.(*http.Transport).TLSHandshakeTimeout = s.Timeout * time.Second
-					}
-					clientLock.Unlock()
-				}
-			}
-
-		}
-	}
-}
-
-func getClientForBackendService(bs service.BackendService, target string, clients map[string]*http.Client, clientLock *sync.Mutex) (*http.Client, error) {
-	clientLock.Lock()
-	defer clientLock.Unlock()
-
-	// Check if the client for this target already exists
-	if client, ok := clients[target]; ok {
-		return client, nil
+func getClientForBackendService(bs *service.BackendService) (*http.Client, error) {
+	if bs.GetHTTPClient() != nil {
+		return bs.GetHTTPClient(), nil
 	}
 
 	// Create a new transport with the specified settings
@@ -238,15 +168,20 @@ func getClientForBackendService(bs service.BackendService, target string, client
 		Transport: transport,
 	}
 
-	// Add the client to the map of clients
-	key := fmt.Sprintf("%s_%s", bs.Name, target)
-	clients[key] = client
+	// Set the client in the BackendService instance
+	bs.SetHTTPClient(client)
 
 	return client, nil
 }
+
 
 func copyHeaders(dst, src http.Header) {
 	for k, v := range src {
 		dst[k] = v
 	}
+}
+
+type HTTPClient interface {
+    Do(req *http.Request) (*http.Response, error)
+    CloseIdleConnections()
 }

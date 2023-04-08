@@ -30,6 +30,7 @@ type BackendService struct {
 	RewriteMatch       string             `json:"rewriteMatch,omitempty" yaml:"rewriteMatch,omitempty"`
     RewriteReplace     string             `json:"rewriteReplace,omitempty" yaml:"rewriteReplace,omitempty"`
 
+	httpClient     *http.Client
 	compiledRegex  *regexp.Regexp
 	loadBalancer   loadbalancer.LoadBalancer
 	provider       oauth.OAuthProvider
@@ -124,6 +125,16 @@ func (bs *BackendService) compileRegex() {
 		}
 		bs.compiledRegex = compiled
 	}
+}
+
+// SetHTTPClient sets the httpClient for the BackendService
+func (bs *BackendService) SetHTTPClient(client *http.Client) {
+	bs.httpClient = client
+}
+
+// GetHTTPClient returns the httpClient of the BackendService
+func (bs *BackendService) GetHTTPClient() *http.Client {
+	return bs.httpClient
 }
 
 func (bs *BackendService) Init() {

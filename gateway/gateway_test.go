@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -266,6 +265,7 @@ func TestGatewayHandler(t *testing.T) {
 		}
 
 		clients[bs.Name] = &http.Client{Transport: mockClient}
+		bs.SetHTTPClient(mockClient)
 
 		reg, _ := service.NewServiceRegistry(context.Background(), "memory", nil)
 		reg.AddService(bs)
@@ -288,7 +288,7 @@ func TestGatewayHandler(t *testing.T) {
 		if err != nil {
 			t.Errorf("could not create logger due to: %s", err)
 		}
-		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
+		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, logger)
 		handler.ServeHTTP(w, req)
 
 		// Check the response status code
@@ -449,10 +449,7 @@ func TestGetClientForBackendService(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clients := tc.existingClients
-			clientLock := &sync.Mutex{}
-
-			client, err := getClientForBackendService(tc.backendService, tc.target, clients, clientLock)
+			client, err := getClientForBackendService(&tc.backendService)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
@@ -474,12 +471,11 @@ func BenchmarkGatewayHandler(b *testing.B) {
 		Name:            "test",
 		Domain:          "test.com",
 		Path:            "/api",
-		Scheme:          "https",
 		StripPath:       true,
 		MaxIdleConns:    100,
 		MaxIdleTime:     time.Duration(10) * time.Second,
 		Timeout:         time.Duration(5) * time.Second,
-		UpstreamTargets: []string{"httpbin.org"},
+		UpstreamTargets: []string{"https://httpbin.org"},
 	}
 
 	bs.Init()
@@ -515,7 +511,7 @@ func BenchmarkGatewayHandler(b *testing.B) {
 	if err != nil {
 		b.Errorf("could not create logger due to: %s", err)
 	}
-	handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
+	handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, logger)
 
 	for i := 0; i < b.N; i++ {
 		handler.ServeHTTP(w, req)

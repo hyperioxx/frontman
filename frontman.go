@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"sync"
 
 	"github.com/Frontman-Labs/frontman/api"
 	"github.com/julienschmidt/httprouter"
@@ -52,11 +51,7 @@ func NewFrontman(conf *config.Config, log log.Logger) (*Frontman, error) {
 	}
 
 	// Create new APIGateway instance
-	clients := make(map[string]*http.Client)
-	lock := sync.Mutex{}
-	apiGateway := gateway.NewAPIGateway(serviceRegistry, plug, conf, clients, log, &lock)
-
-	go gateway.RefreshConnections(serviceRegistry, clients, &lock)
+	apiGateway := gateway.NewAPIGateway(serviceRegistry, plug, conf, log)
 
 	// Create the Frontman instance
 	return &Frontman{
