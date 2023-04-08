@@ -161,27 +161,6 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func refreshClients(bs *service.BackendService, clients map[string]*http.Client, clientLock *sync.Mutex) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			clientLock.Lock()
-
-			// Update the transport settings for each client
-			for _, client := range clients {
-				transport := client.Transport.(*http.Transport)
-				transport.MaxIdleConns = bs.MaxIdleConns
-				transport.IdleConnTimeout = bs.MaxIdleTime * time.Second
-				transport.TLSHandshakeTimeout = bs.Timeout * time.Second
-			}
-
-			clientLock.Unlock()
-		}
-	}
-}
 
 func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Client, clientLock *sync.Mutex) {
 
@@ -237,7 +216,6 @@ func RefreshConnections(bs service.ServiceRegistry, clients map[string]*http.Cli
 					}
 					clientLock.Unlock()
 				}
-				refreshClients(s, clients, clientLock)
 			}
 
 		}
