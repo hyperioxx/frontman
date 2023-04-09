@@ -60,8 +60,8 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Use the compiledRegex field in the backendService struct to apply the rewrite
-	if backendService.GetMatch() != nil {
-		urlPath = backendService.GetMatch().ReplaceAllString(urlPath, backendService.RewriteReplace)
+	if backendService.GetCompiledRewriteMatch() != nil {
+		urlPath = backendService.GetCompiledRewriteMatch().ReplaceAllString(urlPath, backendService.RewriteReplace)
 	}
 
 	// Create a new target URL with the service path and scheme

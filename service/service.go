@@ -30,11 +30,11 @@ type BackendService struct {
 	RewriteMatch       string             `json:"rewriteMatch,omitempty" yaml:"rewriteMatch,omitempty"`
     RewriteReplace     string             `json:"rewriteReplace,omitempty" yaml:"rewriteReplace,omitempty"`
 
-	httpClient     *http.Client
-	compiledRegex  *regexp.Regexp
-	loadBalancer   loadbalancer.LoadBalancer
-	provider       oauth.OAuthProvider
-	tokenValidator *auth.TokenValidator
+	httpClient            *http.Client
+	compiledRewriteMatch  *regexp.Regexp
+	loadBalancer          loadbalancer.LoadBalancer
+	provider              oauth.OAuthProvider
+	tokenValidator        *auth.TokenValidator
 }
 
 type LoadBalancerPolicy struct {
@@ -94,8 +94,10 @@ func (bs *BackendService) GetLoadBalancer() loadbalancer.LoadBalancer {
 	return bs.loadBalancer
 }
 
-func (bs *BackendService) GetMatch() *regexp.Regexp {
-	return bs.compiledRegex
+
+// GetCompiledRewriteMatch returns the compiled rewrite match regular expression for the backend service.
+func (bs *BackendService) GetCompiledRewriteMatch() *regexp.Regexp {
+	return bs.compiledRewriteMatch
 }
 
 
@@ -116,15 +118,21 @@ func (bs *BackendService) setLoadBalancer() {
 	}
 }
 
-func (bs *BackendService) compileRegex() {
-	if bs.RewriteMatch != "" && bs.RewriteReplace != "" {
-		compiled, err := regexp.Compile(bs.RewriteMatch)
-		if err != nil {
-			log.Printf("Error compiling regex for backend service %s: %s", bs.Name, err.Error())
-			return
-		}
-		bs.compiledRegex = compiled
+// CompilePath compiles the rewrite match regular expression for the backend service and
+// stores it in the compiledRewriteMatch field. If there's an error while compiling,
+// the error is returned.
+func (bs *BackendService) compilePath()  {
+	if bs.RewriteMatch == "" || bs.RewriteReplace == "" {
+		return 
 	}
+
+	compiled, err := regexp.Compile(bs.RewriteMatch)
+	if err != nil {
+		return 
+	}
+
+	bs.compiledRewriteMatch = compiled
+	return 
 }
 
 // SetHTTPClient sets the httpClient for the BackendService
@@ -137,8 +145,10 @@ func (bs *BackendService) GetHTTPClient() *http.Client {
 	return bs.httpClient
 }
 
+
+
 func (bs *BackendService) Init() {
 	bs.setTokenValidator()
 	bs.setLoadBalancer()
-	bs.compileRegex()
+	bs.compilePath()
 }
