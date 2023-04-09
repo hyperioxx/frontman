@@ -121,13 +121,16 @@ func (bs *BackendService) setLoadBalancer() {
 // stores it in the compiledRewriteMatch field. If there's an error while compiling,
 // the error is returned.
 func (bs *BackendService) CompilePath() error {
-	if bs.RewriteMatch != "" && bs.RewriteReplace != "" {
-		compiled, err := regexp.Compile(bs.RewriteMatch)
-		if err != nil {
-			return err
-		}
-		bs.compiledRewriteMatch = compiled
+	if bs.RewriteMatch == "" || bs.RewriteReplace == "" {
+		return nil
 	}
+
+	compiled, err := regexp.Compile(bs.RewriteMatch)
+	if err != nil {
+		return err
+	}
+
+	bs.compiledRewriteMatch = compiled
 	return nil
 }
 
@@ -136,4 +139,5 @@ func (bs *BackendService) CompilePath() error {
 func (bs *BackendService) Init() {
 	bs.setTokenValidator()
 	bs.setLoadBalancer()
+	bs.CompilePath()
 }
