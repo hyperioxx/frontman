@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"regexp"
 
 	"github.com/Frontman-Labs/frontman/auth"
 	"github.com/Frontman-Labs/frontman/config"
@@ -29,9 +30,11 @@ type BackendService struct {
 	RewriteMatch       string             `json:"rewriteMatch,omitempty" yaml:"rewriteMatch,omitempty"`
     RewriteReplace     string             `json:"rewriteReplace,omitempty" yaml:"rewriteReplace,omitempty"`
 
-	loadBalancer   loadbalancer.LoadBalancer
-	provider       oauth.OAuthProvider
-	tokenValidator *auth.TokenValidator
+	httpClient            *http.Client
+	compiledRewriteMatch  *regexp.Regexp
+	loadBalancer          loadbalancer.LoadBalancer
+	provider              oauth.OAuthProvider
+	tokenValidator        *auth.TokenValidator
 }
 
 type LoadBalancerPolicy struct {
@@ -91,6 +94,12 @@ func (bs *BackendService) GetLoadBalancer() loadbalancer.LoadBalancer {
 	return bs.loadBalancer
 }
 
+// GetCompiledRewriteMatch returns the compiled rewrite match regular expression for the backend service.
+func (bs *BackendService) GetCompiledRewriteMatch() *regexp.Regexp {
+	return bs.compiledRewriteMatch
+}
+
+
 func (bs *BackendService) setLoadBalancer() {
 	switch bs.LoadBalancerPolicy.Type {
 	case loadbalancer.Random:
@@ -108,7 +117,27 @@ func (bs *BackendService) setLoadBalancer() {
 	}
 }
 
+// CompilePath compiles the rewrite match regular expression for the backend service and
+// stores it in the compiledRewriteMatch field. If there's an error while compiling,
+// the error is returned.
+func (bs *BackendService) compilePath()  {
+	if bs.RewriteMatch == "" || bs.RewriteReplace == "" {
+		return 
+	}
+
+	compiled, err := regexp.Compile(bs.RewriteMatch)
+	if err != nil {
+		return 
+	}
+
+	bs.compiledRewriteMatch = compiled
+	return 
+}
+
+
+
 func (bs *BackendService) Init() {
 	bs.setTokenValidator()
 	bs.setLoadBalancer()
+	bs.compilePath()
 }

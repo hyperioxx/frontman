@@ -3,9 +3,11 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"net/http"
 	"net/url"
+	"regexp"
+
+	"github.com/Frontman-Labs/frontman/loadbalancer"
 
 	"github.com/Frontman-Labs/frontman/service"
 	"github.com/julienschmidt/httprouter"
@@ -174,6 +176,11 @@ func validateService(service *service.BackendService) error {
 		return err
 	}
 
+	err = validateMatchPath(service)
+	if err != nil {
+		return err
+	}
+
 	service.Init()
 
 	return nil
@@ -196,6 +203,18 @@ func validateLoadBalancerPolicy(s *service.BackendService) error {
 		}
 	default:
 		return fmt.Errorf("unknown load-balancer policy: %s", s.LoadBalancerPolicy.Type)
+	}
+
+	return nil
+}
+
+func validateMatchPath(bs *service.BackendService) error {
+	if bs.RewriteMatch == "" || bs.RewriteReplace == "" {
+		return nil
+	}
+	_, err := regexp.Compile(bs.RewriteMatch)
+	if err != nil {
+		return err
 	}
 
 	return nil
