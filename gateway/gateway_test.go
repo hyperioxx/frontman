@@ -254,7 +254,6 @@ func TestGatewayHandler(t *testing.T) {
 		}
 
 		bs.Init()
-		bs.CompilePath()
 
 		clients := make(map[string]*http.Client)
 

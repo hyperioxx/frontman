@@ -120,18 +120,18 @@ func (bs *BackendService) setLoadBalancer() {
 // CompilePath compiles the rewrite match regular expression for the backend service and
 // stores it in the compiledRewriteMatch field. If there's an error while compiling,
 // the error is returned.
-func (bs *BackendService) CompilePath() error {
+func (bs *BackendService) CompilePath()  {
 	if bs.RewriteMatch == "" || bs.RewriteReplace == "" {
-		return nil
+		return 
 	}
 
 	compiled, err := regexp.Compile(bs.RewriteMatch)
 	if err != nil {
-		return err
+		return 
 	}
 
 	bs.compiledRewriteMatch = compiled
-	return nil
+	return 
 }
 
 
