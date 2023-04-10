@@ -2,13 +2,11 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 	"github.com/Frontman-Labs/frontman/loadbalancer"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -255,8 +253,6 @@ func TestGatewayHandler(t *testing.T) {
 
 		bs.Init()
 
-		clients := make(map[string]*http.Client)
-
 		mockClient := &mockHTTPClient{
 			mockResponse: &http.Response{
 				StatusCode: tc.expectedStatusCode,
@@ -265,7 +261,7 @@ func TestGatewayHandler(t *testing.T) {
 			mockErr: nil,
 		}
 
-		clients[bs.Name] = &http.Client{Transport: mockClient}
+		bs.GetHttpClient().Transport = mockClient
 
 		reg, _ := service.NewServiceRegistry(context.Background(), "memory", nil)
 		reg.AddService(bs)
@@ -288,7 +284,7 @@ func TestGatewayHandler(t *testing.T) {
 		if err != nil {
 			t.Errorf("could not create logger due to: %s", err)
 		}
-		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
+		handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, logger)
 		handler.ServeHTTP(w, req)
 
 		// Check the response status code
@@ -397,78 +393,6 @@ func TestFindBackendService(t *testing.T) {
 	}
 }
 
-func TestGetClientForBackendService(t *testing.T) {
-	testCases := []struct {
-		name              string
-		backendService    service.BackendService
-		target            string
-		existingClients   map[string]*http.Client
-		expectedTransport *http.Transport
-	}{
-		{
-			name: "New client for target",
-			backendService: service.BackendService{
-				MaxIdleConns:    100,
-				MaxIdleTime:     10,
-				Timeout:         5,
-				UpstreamTargets: []string{"httpbin.org"},
-			},
-			target:          "httpbin.org",
-			existingClients: map[string]*http.Client{},
-			expectedTransport: &http.Transport{
-				MaxIdleConns:        100,
-				IdleConnTimeout:     10 * time.Second,
-				TLSHandshakeTimeout: 5 * time.Second,
-			},
-		},
-		{
-			name: "Existing client for target",
-			backendService: service.BackendService{
-				MaxIdleConns:    50,
-				MaxIdleTime:     5,
-				Timeout:         2,
-				UpstreamTargets: []string{"httpbin.org"},
-			},
-			target: "httpbin.org",
-			existingClients: map[string]*http.Client{
-				"httpbin.org": &http.Client{
-					Transport: &http.Transport{
-						MaxIdleConns:        100,
-						IdleConnTimeout:     10 * time.Second,
-						TLSHandshakeTimeout: 5 * time.Second,
-					},
-				},
-			},
-			expectedTransport: &http.Transport{
-				MaxIdleConns:        100,
-				IdleConnTimeout:     10 * time.Second,
-				TLSHandshakeTimeout: 5 * time.Second,
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			clients := tc.existingClients
-			clientLock := &sync.Mutex{}
-
-			client, err := getClientForBackendService(tc.backendService, tc.target, clients, clientLock)
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			transport, ok := client.Transport.(*http.Transport)
-			if !ok {
-				t.Errorf("Unexpected transport type: %T", client.Transport)
-			}
-
-			if !reflect.DeepEqual(transport, tc.expectedTransport) {
-				t.Errorf("Unexpected transport: got %v, want %v", transport, tc.expectedTransport)
-			}
-		})
-	}
-}
-
 func BenchmarkGatewayHandler(b *testing.B) {
 	bs := &service.BackendService{
 		Name:            "test",
@@ -501,21 +425,11 @@ func BenchmarkGatewayHandler(b *testing.B) {
 		},
 	}
 
-	clients := make(map[string]*http.Client)
-	key := fmt.Sprintf("%s_%s", bs.Name, bs.UpstreamTargets[0])
-	clients[key] = &http.Client{Transport: &mockHTTPClient{
-		mockResponse: &http.Response{
-			StatusCode: http.StatusOK,
-			Header:     make(http.Header),
-		},
-		mockErr: nil,
-	}}
-
 	logger, err := log.NewZapLogger("info")
 	if err != nil {
 		b.Errorf("could not create logger due to: %s", err)
 	}
-	handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, clients, logger, &sync.Mutex{})
+	handler := NewAPIGateway(reg, []plugins.FrontmanPlugin{plugin}, &config.Config{}, logger)
 
 	for i := 0; i < b.N; i++ {
 		handler.ServeHTTP(w, req)

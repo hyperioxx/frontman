@@ -186,23 +186,23 @@ func validateService(service *service.BackendService) error {
 	return nil
 }
 
-func validateLoadBalancerPolicy(s *service.BackendService) error {
-	switch s.LoadBalancerPolicy.Type {
+func validateLoadBalancerPolicy(bs *service.BackendService) error {
+	switch bs.LoadBalancerPolicy.Type {
 	case loadbalancer.Random:
 	case loadbalancer.LeastConnection:
 	case loadbalancer.RoundRobin:
 	case loadbalancer.WeightedRoundRobin, loadbalancer.WeightedLeastConnection:
-		if len(s.LoadBalancerPolicy.Options.Weights) != len(s.UpstreamTargets) {
+		if len(bs.LoadBalancerPolicy.Options.Weights) != len(bs.UpstreamTargets) {
 			return fmt.Errorf("mismatched lengths of weights and targets")
 		}
 
-		for _, w := range s.LoadBalancerPolicy.Options.Weights {
+		for _, w := range bs.LoadBalancerPolicy.Options.Weights {
 			if w <= 0 {
 				return fmt.Errorf("weights must be greater than zero")
 			}
 		}
 	default:
-		return fmt.Errorf("unknown load-balancer policy: %s", s.LoadBalancerPolicy.Type)
+		return fmt.Errorf("unknown load-balancer policy: %s", bs.LoadBalancerPolicy.Type)
 	}
 
 	return nil
