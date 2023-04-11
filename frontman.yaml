@@ -24,6 +24,3 @@ gateway:
 
 logging:
   level: LOG_LEVEL
-
-
-
