@@ -71,7 +71,7 @@ func (g *APIGateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		targetURL.RawQuery = req.URL.RawQuery
 	}
 
-	// Get or create a new client for this backend service
+	// Get client for backend service
 	client := backendService.GetHttpClient()
 
 	// Copy the headers from the original request
