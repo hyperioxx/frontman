@@ -3,8 +3,8 @@ package service
 import (
 	"log"
 	"net/http"
-	"time"
 	"regexp"
+	"time"
 
 	"github.com/Frontman-Labs/frontman/auth"
 	"github.com/Frontman-Labs/frontman/config"
@@ -28,13 +28,13 @@ type BackendService struct {
 	AuthConfig         *config.AuthConfig `json:"auth,omitempty" yaml:"auth,omitempty"`
 	LoadBalancerPolicy LoadBalancerPolicy `json:"loadBalancerPolicy,omitempty" yaml:"loadBalancerPolicy,omitempty"`
 	RewriteMatch       string             `json:"rewriteMatch,omitempty" yaml:"rewriteMatch,omitempty"`
-    RewriteReplace     string             `json:"rewriteReplace,omitempty" yaml:"rewriteReplace,omitempty"`
+	RewriteReplace     string             `json:"rewriteReplace,omitempty" yaml:"rewriteReplace,omitempty"`
 
-	httpClient            *http.Client
-	compiledRewriteMatch  *regexp.Regexp
-	loadBalancer          loadbalancer.LoadBalancer
-	provider              oauth.OAuthProvider
-	tokenValidator        *auth.TokenValidator
+	httpClient           *http.Client
+	compiledRewriteMatch *regexp.Regexp
+	loadBalancer         loadbalancer.LoadBalancer
+	provider             oauth.OAuthProvider
+	tokenValidator       *auth.TokenValidator
 }
 
 type LoadBalancerPolicy struct {
@@ -66,6 +66,7 @@ func (bs *BackendService) setTokenValidator() {
 	if bs.AuthConfig == nil {
 		return
 	}
+
 	validator, err := auth.GetTokenValidator(*bs.AuthConfig)
 	if err != nil {
 		log.Printf("Error adding auth to backend service: %s: %s", bs.Name, err.Error())
@@ -99,6 +100,9 @@ func (bs *BackendService) GetCompiledRewriteMatch() *regexp.Regexp {
 	return bs.compiledRewriteMatch
 }
 
+func (bs *BackendService) GetHttpClient() *http.Client {
+	return bs.httpClient
+}
 
 func (bs *BackendService) setLoadBalancer() {
 	switch bs.LoadBalancerPolicy.Type {
@@ -120,24 +124,32 @@ func (bs *BackendService) setLoadBalancer() {
 // CompilePath compiles the rewrite match regular expression for the backend service and
 // stores it in the compiledRewriteMatch field. If there's an error while compiling,
 // the error is returned.
-func (bs *BackendService) compilePath()  {
+func (bs *BackendService) compilePath() {
 	if bs.RewriteMatch == "" || bs.RewriteReplace == "" {
-		return 
+		return
 	}
 
 	compiled, err := regexp.Compile(bs.RewriteMatch)
 	if err != nil {
-		return 
+		return
 	}
 
 	bs.compiledRewriteMatch = compiled
-	return 
 }
 
+func (bs *BackendService) setHttpClient() {
+	transport := &http.Transport{
+		MaxIdleConns:        bs.MaxIdleConns,
+		IdleConnTimeout:     bs.MaxIdleTime * time.Second,
+		TLSHandshakeTimeout: bs.Timeout * time.Second,
+	}
 
+	bs.httpClient = &http.Client{Transport: transport}
+}
 
 func (bs *BackendService) Init() {
 	bs.setTokenValidator()
 	bs.setLoadBalancer()
+	bs.setHttpClient()
 	bs.compilePath()
 }
